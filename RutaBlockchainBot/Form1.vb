@@ -508,21 +508,21 @@ Public Class Form1
             '412055031370612736 = #debates-domingueros
             '408693599077924864 = #evangecriptos
             '402820779164696577 = #publica tu post
-            If e.Channel.Id = 403626371659726879 = False And e.Channel.Id = 403636422612877312 = False And e.Channel.Id = 404108969905356801 = False And e.Channel.Id = 404781212536799233 = False And e.Channel.Id = 413455484213919744 = False And e.Channel.Id = 412055031370612736 = False And e.Channel.Id = 408693599077924864 = False and e.Channel.Id = 402820779164696577 = False Then
-                If e.Message.Content.Contains("steemit.com/") Or e.Message.Content.Contains("busy.org/") Or e.Message.Content.Contains("utopian.io/") Then
-                    Dim SplitWords As String() = e.Message.Content.Split("/")
-                    If SplitWords.Count > 4 Then
-                        Dim Channel As DiscordChannel = Await DiscordClient.GetChannelAsync(402820779164696577)
-                        Dim Message As String = ":police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: " & vbCrLf &
-                                                ":warning: " & UserInDiscord.Mention & " ADVERTENCIA " & UserInDiscord.Mention & " :warning:" & vbCrLf &
-                                                ":rotating_light: Mensaje con post detectado :rotating_light:" & vbCrLf &
-                                                ":rotating_light: En este canal, no se permiten posts. Los posts deben ir en el canal " & Channel.Mention & " :rotating_light:" & vbCrLf &
-                                                ":police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: " & vbCrLf &
-                                                ":warning: Por favor, escribe para confirmar que viste la advertencia :warning: Infracciones múltiples resultarán en tu expulsión de este servidor."
-                        Await e.Channel.SendMessageAsync(Message)
-                    End If
-                End If
-            End If
+            'If e.Channel.Id = 403626371659726879 = False And e.Channel.Id = 403636422612877312 = False And e.Channel.Id = 404108969905356801 = False And e.Channel.Id = 404781212536799233 = False And e.Channel.Id = 413455484213919744 = False And e.Channel.Id = 412055031370612736 = False And e.Channel.Id = 408693599077924864 = False and e.Channel.Id = 402820779164696577 = False Then
+            '    If e.Message.Content.Contains("steemit.com/") Or e.Message.Content.Contains("busy.org/") Or e.Message.Content.Contains("utopian.io/") Then
+            '        Dim SplitWords As String() = e.Message.Content.Split("/")
+            '        If SplitWords.Count > 4 Then
+            '            Dim Channel As DiscordChannel = Await DiscordClient.GetChannelAsync(402820779164696577)
+            '            Dim Message As String = ":police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: " & vbCrLf &
+            '                                    ":warning: " & UserInDiscord.Mention & " ADVERTENCIA " & UserInDiscord.Mention & " :warning:" & vbCrLf &
+            '                                    ":rotating_light: Mensaje con post detectado :rotating_light:" & vbCrLf &
+            '                                    ":rotating_light: En este canal, no se permiten posts. Los posts deben ir en el canal " & Channel.Mention & " :rotating_light:" & vbCrLf &
+            '                                    ":police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: " & vbCrLf &
+            '                                    ":warning: Por favor, escribe para confirmar que viste la advertencia :warning: Infracciones múltiples resultarán en tu expulsión de este servidor."
+            '            Await e.Channel.SendMessageAsync(Message)
+            '        End If
+            '    End If
+            'End If
         End If
     End Function
     Private Sub SaveGreetedUser(LastUserGreeted As String, LastUserGoodbye As String)
