@@ -321,8 +321,6 @@ Public Class Form1
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!witness") Then
                     Dim WitnessVotes As String = GetResultFromSteemPlaceAPI(User, "witness")
-                    Dim VoteLink As String = ""
-                    Dim Voted = False
                     Dim MentionMoises As DiscordUser = Await DiscordClient.GetUserAsync("323205598311219211")
                     If String.IsNullOrEmpty(WitnessVotes) = False Then
                         If WitnessVotes.Contains("moisesmcardona") Then
