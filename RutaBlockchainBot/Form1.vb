@@ -312,6 +312,13 @@ Public Class Form1
                     Else
                         Await e.Channel.SendMessageAsync("@" & User & " tiene " & Balance & " :smiley: ")
                     End If
+                ElseIf e.Message.Content.ToLower().Contains("!vp") Then
+                    Dim VP As Double = GetResultFromSteemPlaceAPI(User, "vp")
+                    If IsUserInDiscord Then
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tu poder de voto es " & VP & "% :slight_smile: ")
+                    Else
+                        Await e.Channel.SendMessageAsync("@" & User & ", tu poder de voto es " & VP & "% :slight_smile: ")
+                    End If
                 ElseIf e.Message.Content.ToLower().Contains("!witness") Then
                     Dim WitnessVotes As String = GetResultFromSteemPlaceAPI(User, "witness")
                     Dim VoteLink As String = ""
