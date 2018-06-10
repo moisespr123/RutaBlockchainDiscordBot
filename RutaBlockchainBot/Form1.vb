@@ -4,6 +4,7 @@ Imports System.Text
 Imports DSharpPlus
 Imports DSharpPlus.Entities
 Imports DSharpPlus.EventArgs
+Imports MySql.Data.MySqlClient
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 
@@ -97,12 +98,74 @@ Public Class Form1
         ElseIf what = "vp" Then
             URL = "https://api.steem.place/getVP/?a="
         End If
-        Dim myWebRequest As System.Net.WebRequest = System.Net.WebRequest.Create(URL & user)
-        Dim myWebResponse As System.Net.WebResponse = myWebRequest.GetResponse()
+        Dim myWebRequest As WebRequest = WebRequest.Create(URL & user)
+        Dim myWebResponse As WebResponse = myWebRequest.GetResponse()
         Dim ReceiveStream As Stream = myWebResponse.GetResponseStream()
         Dim encode As Encoding = System.Text.Encoding.GetEncoding("utf-8")
         Dim readStream As New StreamReader(ReceiveStream, encode)
         Return readStream.ReadLine
+    End Function
+    Private Function CheckIfActivityExists(day As String, time As String) As Boolean
+        day = ReturnIntFromDayString(day)
+        time = ParseTime(time)
+        Dim hasRows As Boolean = False
+        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE day=" + day + " AND time='" + time & "';"
+        Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+        Dim Command As New MySqlCommand(SQLQuery, Connection)
+        Connection.Open()
+        Dim reader As MySqlDataReader = Command.ExecuteReader
+        If reader.HasRows Then hasRows = True Else hasRows = False
+        Connection.Close()
+        Return hasRows
+    End Function
+    Private Function GetActivity(Optional day As String = "", Optional time As String = "") As Boolean
+        Dim SQLQuery As String = String.Empty
+        If Not String.IsNullOrEmpty(day) Then
+            If String.IsNullOrEmpty(time) Then
+                SQLQuery = "SELECT day, time, activityname FROM activities WHERE day=" + day + " AND time='" + time & "';"
+
+            End If
+        End If
+        day = ReturnIntFromDayString(day)
+
+        time = ParseTime(time)
+        Dim hasRows As Boolean = False
+        Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+        Dim Command As New MySqlCommand(SQLQuery, Connection)
+        Connection.Open()
+        Dim reader As MySqlDataReader = Command.ExecuteReader
+        If reader.HasRows Then hasRows = True Else hasRows = False
+        Connection.Close()
+        Return hasRows
+    End Function
+    Private Function ParseTime(time As String) As String
+        Dim timeSplit As String() = time.Split(":")
+        If timeSplit(1).Contains("PM") Then
+            timeSplit(0) = (Convert.ToInt16(timeSplit(0)) + 12).ToString
+        End If
+        time = timeSplit(0) + ":" + timeSplit(1)
+        timeSplit = time.Split(" ")
+        Return timeSplit(0)
+    End Function
+    Private Function ReturnIntFromDayString(day As String) As String
+        day = day.ToLower()
+        Dim dayInt As Integer = 0
+        If day = "domingo" Then
+            dayInt = 1
+        ElseIf day = "lunes" Then
+            dayInt = 2
+        ElseIf day = "martes" Then
+            dayInt = 3
+        ElseIf day = "miercoles" Or day = "miércoles" Then
+            dayInt = 4
+        ElseIf day = "jueves" Then
+            dayInt = 5
+        ElseIf day = "viernes" Then
+            dayInt = 6
+        ElseIf day = "sabado" Or day = "sábado" Then
+            dayInt = 7
+        End If
+        Return dayInt.ToString
     End Function
     Private Async Function OnMessage(ByVal e As MessageCreateEventArgs) As Task Handles DiscordClient.MessageCreated
         Dim User As String = FindUserInFile(e.Message.Author.Username)
@@ -110,7 +173,7 @@ Public Class Form1
         Dim IsUserInDiscord As Boolean = False
         Dim UserInDiscord As DiscordUser = e.Message.Author
         If e.Message.Author.Username = "RutaBlockchainBot" = False Then
-            If e.Channel.Id = 402823764586397706 Then 'ProVenezuela
+            If e.Channel.Id = 402823764586397706 Then
                 If e.Message.Content.ToLower.Contains("@") And e.Message.Content.ToLower.Contains("http") = False Then
                     Dim SplitWords As String() = e.Message.Content.Split(" ")
                     If SplitWords.Count >= 2 Then
@@ -160,7 +223,7 @@ Public Class Form1
                     Await e.Channel.SendMessageAsync("Tenemos las siguientes clases en la semana: " & vbCrLf & vbCrLf &
                                                      "Martes: Noche de poesía con @danvel" & vbCrLf &
                                                      "Miércoles: Clase de ortografía y redacción con @marynessc" & vbCrLf &
-                                                     "Viernes: Tutoría de blog con @ivymalifred" &vbCrLf & vbCrLf & 
+                                                     "Viernes: Tutoría de blog con @ivymalifred" & vbCrLf & vbCrLf &
                                                      "Todas las clases son a las 7 PM hora de Venezuela")
                 ElseIf e.Message.Content.ToLower().Contains("!adn") Then
                     Await e.Channel.SendMessageAsync("Mi ADN es 100% tipo Visual Basic .NET")
@@ -469,6 +532,26 @@ Public Class Form1
                         Await e.Channel.SendMessageAsync("El perfil de @" & User & " es: " & vbCrLf & "en Steemit: https://steemit.com/@" & User & vbCrLf & "en Busy: https://busy.org/@" & User)
                     End If
                 End If
+            ElseIf e.Channel.Id = 454673311322865665 Then
+                If e.Message.Content.ToLower().Contains("!actividad") Then
+                    Dim SplitWords As String() = e.Message.Content.Split(" ")
+                    Dim ErrorOccurred As Boolean = False
+                    Try
+                        If SplitWords(1) = "añadir" Then
+                            If SplitWords(2) = "actividad" Then
+                                If SplitWords(3) = "añadir" Then
+                                    Dim TimeslotAvailable As Boolean = CheckIfActivityExists(SplitWords(4), SplitWords(5) + SplitWords(6))
+                                    If TimeslotAvailable Then
+
+                                    End If
+                                End If
+                            End If
+                        End If
+                    Catch
+                        ErrorOccurred = True
+                    End Try
+                    If ErrorOccurred Then Await e.Channel.SendMessageAsync("Ha ocurrido un error. Asegúrese que el formato del mensaje es por ejemplo:" & vbCrLf & "!actividad añadir lunes 9:00 PM una actividad")
+                End If
             End If
             'If e.Channel.Id = "" Then
             '    If e.Message.Content.ToLower().Contains("!valor") Then
@@ -502,29 +585,6 @@ Public Class Form1
             '        Else
             '            Reply = GetOrCalculatePrice("steem", "USD")
             '            Await e.Channel.SendMessageAsync(Reply)
-            '        End If
-            '    End If
-            'End If
-            '403626371659726879 = #post-utiles-de-steemit
-            '403636422612877312 = #anuncios
-            '404108969905356801 = #steem-walking
-            '404781212536799233 = #meetup
-            '413455484213919744 = #tutorias
-            '412055031370612736 = #debates-domingueros
-            '408693599077924864 = #evangecriptos
-            '402820779164696577 = #publica tu post
-            'If e.Channel.Id = 403626371659726879 = False And e.Channel.Id = 403636422612877312 = False And e.Channel.Id = 404108969905356801 = False And e.Channel.Id = 404781212536799233 = False And e.Channel.Id = 413455484213919744 = False And e.Channel.Id = 412055031370612736 = False And e.Channel.Id = 408693599077924864 = False and e.Channel.Id = 402820779164696577 = False Then
-            '    If e.Message.Content.Contains("steemit.com/") Or e.Message.Content.Contains("busy.org/") Or e.Message.Content.Contains("utopian.io/") Then
-            '        Dim SplitWords As String() = e.Message.Content.Split("/")
-            '        If SplitWords.Count > 4 Then
-            '            Dim Channel As DiscordChannel = Await DiscordClient.GetChannelAsync(402820779164696577)
-            '            Dim Message As String = ":police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: " & vbCrLf &
-            '                                    ":warning: " & UserInDiscord.Mention & " ADVERTENCIA " & UserInDiscord.Mention & " :warning:" & vbCrLf &
-            '                                    ":rotating_light: Mensaje con post detectado :rotating_light:" & vbCrLf &
-            '                                    ":rotating_light: En este canal, no se permiten posts. Los posts deben ir en el canal " & Channel.Mention & " :rotating_light:" & vbCrLf &
-            '                                    ":police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: " & vbCrLf &
-            '                                    ":warning: Por favor, escribe para confirmar que viste la advertencia :warning: Infracciones múltiples resultarán en tu expulsión de este servidor."
-            '            Await e.Channel.SendMessageAsync(Message)
             '        End If
             '    End If
             'End If
@@ -629,5 +689,31 @@ Public Class Form1
 
     Private Async Sub Button3_Click(sender As Object, e As System.EventArgs) Handles Button3.Click
         Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(402823764586397706), TextBox1.Text)
+    End Sub
+    Private MySQLString As String = String.Empty
+    Private Sub Form1_Load(sender As Object, e As System.EventArgs) Handles MyBase.Load
+        Dim MySQLFile As StreamReader = New StreamReader("MySQLConfig.txt")
+        Dim currentline As String = ""
+        Dim MySQLServer As String = ""
+        Dim MySQLUser As String = ""
+        Dim MySQLPassword As String = ""
+        Dim MySQLDatabase As String = ""
+        While MySQLFile.EndOfStream = False
+            currentline = MySQLFile.ReadLine
+            If currentline.Contains("server") Then
+                Dim GetServer As String() = currentline.Split("=")
+                MySQLServer = GetServer(1)
+            ElseIf currentline.Contains("username") Then
+                Dim GetUsername As String() = currentline.Split("=")
+                MySQLUser = GetUsername(1)
+            ElseIf currentline.Contains("password") Then
+                Dim GetPassword As String() = currentline.Split("=")
+                MySQLPassword = GetPassword(1)
+            ElseIf currentline.Contains("database") Then
+                Dim GetDatabase As String() = currentline.Split("=")
+                MySQLDatabase = GetDatabase(1)
+            End If
+        End While
+        MySQLString = "server=" + MySQLServer + ";user=" + MySQLUser + ";database=" + MySQLDatabase + ";port=3306;password=" + MySQLPassword + ";"
     End Sub
 End Class
