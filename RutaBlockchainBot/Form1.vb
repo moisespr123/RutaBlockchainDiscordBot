@@ -107,7 +107,7 @@ Public Class Form1
     End Function
     Private Function CheckIfActivityExists(day As String, time As String) As Boolean
         day = ReturnIntFromDayString(day)
-        time = ParseTime(time)
+        time = TimeToMySQLFormat(time)
         Dim hasRows As Boolean = False
         Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE day=" + day + " AND time='" + time & "';"
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
@@ -125,7 +125,7 @@ Public Class Form1
                 eventOrEvents = GetSingleDayActivity(day)
             Else
                 day = ReturnIntFromDayString(day)
-                time = ParseTime(time)
+                time = TimeToMySQLFormat(time)
                 eventOrEvents = GetSpecificActivity(day, time)
             End If
         End If
@@ -170,8 +170,44 @@ Public Class Form1
         Connection.Close()
         Return events
     End Function
-    Private Function ParseTime(time As String) As String
+    Private Sub AddEvent(day As String, time As String, message As String)
+        day = ReturnIntFromDayString(day)
+        time = TimeToMySQLFormat(time)
+        Dim SQLQuery As String = "INSERT INTO activities (day, time, activityname) VALUES ('" + day + "', '" + time + "', '" + message + "')"
+        Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+        Dim Command As New MySqlCommand(SQLQuery, Connection)
+        Connection.Open()
+        Command.ExecuteNonQuery()
+        Connection.Close()
+    End Sub
+    Private Sub UpdateEvent(day As String, time As String, message As String)
+        day = ReturnIntFromDayString(day)
+        time = TimeToMySQLFormat(time)
+        Dim SQLQuery As String = "UPDATE activities SET activityname = '" + message + "' WHERE day='" + day + "' AND time='" + time + "'"
+        Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+        Dim Command As New MySqlCommand(SQLQuery, Connection)
+        Connection.Open()
+        Command.ExecuteNonQuery()
+        Connection.Close()
+    End Sub
+    Private Function TimeToMySQLFormat(time As String) As String
         Dim timeSplit As String() = time.Split(":")
+        If timeSplit(1).Contains("PM") Then
+            timeSplit(0) = (Convert.ToInt16(timeSplit(0)) + 12).ToString
+        End If
+        time = timeSplit(0) + ":" + timeSplit(1)
+        timeSplit = time.Split(" ")
+        Return timeSplit(0)
+    End Function
+    Private Function TimeFromMySQLFormat(time As String) As String
+        Dim timeSplit As String() = time.Split(":")
+        Dim checkHour As Integer = Convert.ToInt16(timeSplit(0))
+        If checkHour > 12 Then
+            checkHour -= 12
+            time = checkHour + timeSplit(1).Split(".")(0) + " AM"
+        Else
+            time = checkHour + timeSplit(1).Split(".")(0) + " PM"
+        End If
         If timeSplit(1).Contains("PM") Then
             timeSplit(0) = (Convert.ToInt16(timeSplit(0)) + 12).ToString
         End If
@@ -198,6 +234,26 @@ Public Class Form1
             dayInt = 7
         End If
         Return dayInt.ToString
+    End Function
+
+    Private Function ReturnStringFromDayInt(day As Integer) As String
+        Dim dayString As String = String.Empty
+        If day = 1 Then
+            dayString = "Domingo"
+        ElseIf day = 2 Then
+            dayString = "Lunes"
+        ElseIf day = 3 Then
+            dayString = "Martes"
+        ElseIf day = 4 Then
+            dayString = "Miércoles"
+        ElseIf day = 5 Then
+            dayString = "Jueves"
+        ElseIf day = 6 Then
+            dayString = "Viernes"
+        ElseIf day = 7 Then
+            dayString = "Sábado"
+        End If
+        Return dayString
     End Function
     Private Async Function OnMessage(ByVal e As MessageCreateEventArgs) As Task Handles DiscordClient.MessageCreated
         Dim User As String = FindUserInFile(e.Message.Author.Username)
@@ -569,14 +625,36 @@ Public Class Form1
                     Dim SplitWords As String() = e.Message.Content.Split(" ")
                     Dim ErrorOccurred As Boolean = False
                     Try
-                        If SplitWords(1) = "añadir" Then
-                            Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
-                            If not TimeslotInUse Then
-
-                            Else
-                                Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine + 
-                                                                 "Para cambiar o actualizar este evento, utilice el comando !actualizar actividad (día) (hora) (mensaje)")
+                        If SplitWords.Count > 1 Then
+                            If SplitWords(1) = "añadir" Then
+                                Dim ActivityName As String = String.Empty
+                                For currentword = 5 To SplitWords.Count - 1
+                                    ActivityName += SplitWords(currentword) + " "
+                                Next
+                                Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                If Not TimeslotInUse Then
+                                    AddEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4), SplitWords(5))
+                                    Await e.Channel.SendMessageAsync("El evento ha sido añadido :slight_smile:")
+                                Else
+                                    Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
+                                                                     "Para cambiar o actualizar este evento, utilice el comando !actividad actualizar (día) (hora) (mensaje)")
+                                End If
+                            ElseIf SplitWords(1) = "actualizar" Then
+                                Dim ActivityName As String = String.Empty
+                                For currentword = 5 To SplitWords.Count - 1
+                                    ActivityName += SplitWords(currentword) + " "
+                                Next
+                                Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                If TimeslotInUse Then
+                                    UpdateEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4), ActivityName)
+                                    Await e.Channel.SendMessageAsync("El evento ha sido actualizado :slight_smile:")
+                                Else
+                                    Await e.Channel.SendMessageAsync("No existe evento para actualizar a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
+                                                                     "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
+                                End If
                             End If
+                        Else
+                            'Code to list activities goes here
                         End If
                     Catch
                         ErrorOccurred = True
@@ -691,8 +769,8 @@ Public Class Form1
         Dim WikipediaText As String = ""
         Try
             Dim ResponseFromServer As String = String.Empty
-            Dim request As System.Net.WebRequest = System.Net.WebRequest.Create("https://es.wikipedia.org/wiki/" & article)
-            Dim response As System.Net.WebResponse = request.GetResponse()
+            Dim request As WebRequest = WebRequest.Create("https://es.wikipedia.org/wiki/" & article)
+            Dim response As WebResponse = request.GetResponse()
             request.Timeout = 10 * 1000
             Dim dataStream As Stream = response.GetResponseStream()
             Dim reader As New StreamReader(dataStream)
@@ -744,7 +822,7 @@ Public Class Form1
             ElseIf currentline.Contains("database") Then
                 Dim GetDatabase As String() = currentline.Split("=")
                 MySQLDatabase = GetDatabase(1)
-             ElseIf currentline.Contains("sslmode") Then
+            ElseIf currentline.Contains("sslmode") Then
                 Dim GetSSLMode As String() = currentline.Split("=")
                 Ssl = GetSSLMode(1)
             End If
