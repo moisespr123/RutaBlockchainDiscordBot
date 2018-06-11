@@ -118,25 +118,57 @@ Public Class Form1
         Connection.Close()
         Return hasRows
     End Function
-    Private Function GetActivity(Optional day As String = "", Optional time As String = "") As Boolean
-        Dim SQLQuery As String = String.Empty
+    Private Function GetActivity(Optional day As String = "", Optional time As String = "") As String
+        Dim eventOrEvents As String = String.Empty
         If Not String.IsNullOrEmpty(day) Then
             If String.IsNullOrEmpty(time) Then
-                SQLQuery = "SELECT day, time, activityname FROM activities WHERE day=" + day + " AND time='" + time & "';"
-
+                eventOrEvents = GetSingleDayActivity(day)
+            Else
+                day = ReturnIntFromDayString(day)
+                time = ParseTime(time)
+                eventOrEvents = GetSpecificActivity(day, time)
             End If
         End If
-        day = ReturnIntFromDayString(day)
-
-        time = ParseTime(time)
+        Return eventOrEvents
+    End Function
+    Private Function GetSingleDayActivity(day As String) As String
+        Dim dayConvertetToInt = ReturnIntFromDayString(day)
+        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE day=" + dayConvertetToInt + " ORDER BY day;"
         Dim hasRows As Boolean = False
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
         Dim Command As New MySqlCommand(SQLQuery, Connection)
         Connection.Open()
         Dim reader As MySqlDataReader = Command.ExecuteReader
-        If reader.HasRows Then hasRows = True Else hasRows = False
+        Dim events As String = "Eventos del " + day + vbCrLf
+        If reader.HasRows Then
+            While reader.Read
+                Dim dateConverted = Convert.ToDateTime(reader("time"))
+                events += dateConverted.ToString("HH:mm:ss t") + " - " + reader("activityname") + vbCrLf
+            End While
+        Else
+            events = "No hay eventos para este día"
+        End If
         Connection.Close()
-        Return hasRows
+        Return events
+    End Function
+    Private Function GetSpecificActivity(day As String, time As String) As String
+        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE day=" + day + " AND time='" + time & "' ORDER BY day, time;"
+        Dim hasRows As Boolean = False
+        Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+        Dim Command As New MySqlCommand(SQLQuery, Connection)
+        Connection.Open()
+        Dim reader As MySqlDataReader = Command.ExecuteReader
+        Dim events As String = String.Empty
+        If reader.HasRows Then
+            While reader.Read
+                Dim dateConverted = Convert.ToDateTime(reader("time"))
+                events = +reader("activityname") + vbCrLf
+            End While
+        Else
+            events = "No hay eventos para este día"
+        End If
+        Connection.Close()
+        Return events
     End Function
     Private Function ParseTime(time As String) As String
         Dim timeSplit As String() = time.Split(":")
@@ -538,13 +570,12 @@ Public Class Form1
                     Dim ErrorOccurred As Boolean = False
                     Try
                         If SplitWords(1) = "añadir" Then
-                            If SplitWords(2) = "actividad" Then
-                                If SplitWords(3) = "añadir" Then
-                                    Dim TimeslotAvailable As Boolean = CheckIfActivityExists(SplitWords(4), SplitWords(5) + SplitWords(6))
-                                    If TimeslotAvailable Then
+                            Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                            If not TimeslotInUse Then
 
-                                    End If
-                                End If
+                            Else
+                                Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine + 
+                                                                 "Para cambiar o actualizar este evento, utilice el comando !actualizar actividad (día) (hora) (mensaje)")
                             End If
                         End If
                     Catch
@@ -698,6 +729,7 @@ Public Class Form1
         Dim MySQLUser As String = ""
         Dim MySQLPassword As String = ""
         Dim MySQLDatabase As String = ""
+        Dim Ssl As String = ""
         While MySQLFile.EndOfStream = False
             currentline = MySQLFile.ReadLine
             If currentline.Contains("server") Then
@@ -712,8 +744,11 @@ Public Class Form1
             ElseIf currentline.Contains("database") Then
                 Dim GetDatabase As String() = currentline.Split("=")
                 MySQLDatabase = GetDatabase(1)
+             ElseIf currentline.Contains("sslmode") Then
+                Dim GetSSLMode As String() = currentline.Split("=")
+                Ssl = GetSSLMode(1)
             End If
         End While
-        MySQLString = "server=" + MySQLServer + ";user=" + MySQLUser + ";database=" + MySQLDatabase + ";port=3306;password=" + MySQLPassword + ";"
+        MySQLString = "server=" + MySQLServer + ";user=" + MySQLUser + ";database=" + MySQLDatabase + ";port=3306;password=" + MySQLPassword + ";sslmode= " + Ssl
     End Sub
 End Class
