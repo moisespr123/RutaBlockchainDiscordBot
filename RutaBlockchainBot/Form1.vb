@@ -448,6 +448,8 @@ Public Class Form1
                     Await e.Channel.SendMessageAsync("pong")
                 ElseIf e.Message.Content.ToLower().Contains("buena noticia") Or e.Message.Content.ToLower().Contains("buenas noticias") Then
                     Await e.Channel.SendMessageAsync("¡Enhorabuena!")
+                ElseIf e.Message.Content.ToLower().Contains("!actividad") Then
+                    GetActivity(ServerName)
                 ElseIf e.Message.Content.ToLower().Contains("!seguidores") Then
                     Dim FollowerNumber As Integer = GetResultFromSteemPlaceAPI(User, "followers")
                     If IsUserInDiscord Then
