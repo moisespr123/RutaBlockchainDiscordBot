@@ -14,6 +14,12 @@ Public Class Form1
     Private Token As String = String.Empty
     Private LastUserGreeted As String = My.Settings.LastUserGreeted
     Private LastUserGoodbye As String = My.Settings.LastUserGoodbye
+    Private ServerName As String = String.Empty
+    Private BotId As String = String.Empty
+    Private MainChannel As String = String.Empty
+    Private CoinValueChannel As String = String.Empty
+    Private Smiley As String = String.Empty
+
 
     Private Async Sub Button1_Click(sender As Object, e As System.EventArgs) Handles Button1.Click
         Button1.Text = "Running"
@@ -33,7 +39,7 @@ Public Class Form1
     End Function
 
     Private Async Function OnGuildMemberAdd(ByVal e As GuildMemberAddEventArgs) As Task Handles DiscordClient.GuildMemberAdded
-        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(402802330728267776), "Démosle una cordiál bienvenida a " & e.Member.Mention & " al chat de Ruta Blockchain :smiley:")
+        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(402802330728267776), "Démosle una cordial bienvenida a " & e.Member.Mention & " al chat de " + ServerName + " " + Smiley)
     End Function
     Private Function FindUserInFile(user As String)
         Dim userInFile As String = String.Empty
@@ -274,8 +280,8 @@ Public Class Form1
         User = User.ToLower
         Dim IsUserInDiscord As Boolean = False
         Dim UserInDiscord As DiscordUser = e.Message.Author
-        If e.Message.Author.Username = "RutaBlockchainBot" = False Then
-            If e.Channel.Id = 402823764586397706 Then
+        If e.Message.Author.Id = BotId = False Then
+            If e.Channel.Id = MainChannel Then
                 If e.Message.Content.ToLower.Contains("@") And e.Message.Content.ToLower.Contains("http") = False Then
                     Dim SplitWords As String() = e.Message.Content.Split(" ")
                     If SplitWords.Count >= 2 Then
@@ -690,41 +696,44 @@ Public Class Form1
                     If ErrorOccurred Then Await e.Channel.SendMessageAsync("Ha ocurrido un error. Asegúrese que el formato del mensaje es por ejemplo:" & vbCrLf & "!actividad añadir lunes 9:00 PM una actividad")
                 End If
             End If
-            'If e.Channel.Id = "" Then
-            '    If e.Message.Content.ToLower().Contains("!valor") Then
-            '    Dim Reply As String = String.Empty
-            '    Dim SplitWords As String() = e.Message.Content.Split(" ")
-            '    If SplitWords.Count >= 2 Then
-            '        Dim i = 0
-            '        For Each word In SplitWords
-            '            If word = "!valor" Then
-            '                Reply = GetOrCalculatePrice(SplitWords(i + 1))
-            '            End If
-            '            i = i + 1
-            '        Next
-            '        Await e.Channel.SendMessageAsync(Reply)
-            '    Else
-            '        Reply = GetOrCalculatePrice("steem", "USD")
-            '        Await e.Channel.SendMessageAsync(Reply)
-            '    End If
-            'ElseIf e.Message.Content.ToLower().Contains("!calcular") Then
-            '    Dim Reply As String = String.Empty
-            '        Dim SplitWords As String() = e.Message.Content.Split(" ")
-            '        If SplitWords.Count >= 2 Then
-            '            Dim i = 0
-            '            For Each word In SplitWords
-            '                If word = "!calcular" Then
-            '                    Reply = GetOrCalculatePrice(SplitWords(i + 2), SplitWords(i + 1))
-            '                End If
-            '                i = i + 1
-            '            Next
-            '            Await e.Channel.SendMessageAsync(Reply)
-            '        Else
-            '            Reply = GetOrCalculatePrice("steem", "USD")
-            '            Await e.Channel.SendMessageAsync(Reply)
-            '        End If
-            '    End If
-            'End If
+            If Not String.IsNullOrEmpty(CoinValueChannel) Then
+
+                If e.Channel.Id = CoinValueChannel Then
+                    If e.Message.Content.ToLower().Contains("!valor") Then
+                        Dim Reply As String = String.Empty
+                        Dim SplitWords As String() = e.Message.Content.Split(" ")
+                        If SplitWords.Count >= 2 Then
+                            Dim i = 0
+                            For Each word In SplitWords
+                                If word = "!valor" Then
+                                    Reply = GetOrCalculatePrice(SplitWords(i + 1))
+                                End If
+                                i = i + 1
+                            Next
+                            Await e.Channel.SendMessageAsync(Reply)
+                        Else
+                            Reply = GetOrCalculatePrice("steem", "USD")
+                            Await e.Channel.SendMessageAsync(Reply)
+                        End If
+                    ElseIf e.Message.Content.ToLower().Contains("!calcular") Then
+                        Dim Reply As String = String.Empty
+                        Dim SplitWords As String() = e.Message.Content.Split(" ")
+                        If SplitWords.Count >= 2 Then
+                            Dim i = 0
+                            For Each word In SplitWords
+                                If word = "!calcular" Then
+                                    Reply = GetOrCalculatePrice(SplitWords(i + 2), SplitWords(i + 1))
+                                End If
+                                i = i + 1
+                            Next
+                            Await e.Channel.SendMessageAsync(Reply)
+                        Else
+                            Reply = GetOrCalculatePrice("steem", "USD")
+                            Await e.Channel.SendMessageAsync(Reply)
+                        End If
+                    End If
+                End If
+            End If
         End If
     End Function
     Private Sub SaveGreetedUser(LastUserGreeted As String, LastUserGoodbye As String)
@@ -829,31 +838,46 @@ Public Class Form1
     End Sub
 
     Private Sub Form1_Load(sender As Object, e As System.EventArgs) Handles MyBase.Load
-        Dim MySQLFile As StreamReader = New StreamReader("Config.txt")
+        Dim ConfigFile As StreamReader = New StreamReader("Config.txt")
         Dim currentline As String = String.Empty
         Dim MySQLServer As String = String.Empty
         Dim MySQLUser As String = String.Empty
         Dim MySQLPassword As String = String.Empty
         Dim MySQLDatabase As String = String.Empty
         Dim Ssl As String = String.Empty
-        While MySQLFile.EndOfStream = False
-            currentline = MySQLFile.ReadLine
-            If currentline.Contains("server") Then
+        While ConfigFile.EndOfStream = False
+            currentline = ConfigFile.ReadLine
+            If currentline.Contains("token") Then
                 Dim GetToken As String() = currentline.Split("=")
                 Token = GetToken(1)
-            ElseIf currentline.Contains("server") Then
+            ElseIf currentline.Contains("discord-name") Then
+                Dim GetDiscordName As String() = currentline.Split("=")
+                ServerName = GetDiscordName(1)
+            ElseIf currentline.Contains("bot-id") Then
+                Dim GetBotId As String() = currentline.Split("=")
+                BotId = GetBotId(1)
+            ElseIf currentline.Contains("main-channel") Then
+                Dim GetMainChannel As String() = currentline.Split("=")
+                MainChannel = GetMainChannel(1)
+            ElseIf currentline.Contains("value-channel") Then
+                Dim GetCoinValueChannel As String() = currentline.Split("=")
+                CoinValueChannel = GetCoinValueChannel(1)
+            ElseIf currentline.Contains("smiley") Then
+                Dim GetSmiley As String() = currentline.Split("=")
+                Smiley = GetSmiley(1)
+            ElseIf currentline.Contains("mysql-server") Then
                 Dim GetServer As String() = currentline.Split("=")
                 MySQLServer = GetServer(1)
-            ElseIf currentline.Contains("username") Then
+            ElseIf currentline.Contains("mysql-username") Then
                 Dim GetUsername As String() = currentline.Split("=")
                 MySQLUser = GetUsername(1)
-            ElseIf currentline.Contains("password") Then
+            ElseIf currentline.Contains("mysql-password") Then
                 Dim GetPassword As String() = currentline.Split("=")
                 MySQLPassword = GetPassword(1)
-            ElseIf currentline.Contains("database") Then
+            ElseIf currentline.Contains("mysql-database") Then
                 Dim GetDatabase As String() = currentline.Split("=")
                 MySQLDatabase = GetDatabase(1)
-            ElseIf currentline.Contains("sslmode") Then
+            ElseIf currentline.Contains("mysql-sslmode") Then
                 Dim GetSSLMode As String() = currentline.Split("=")
                 Ssl = GetSSLMode(1)
             End If
