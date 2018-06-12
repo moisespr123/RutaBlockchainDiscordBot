@@ -17,6 +17,7 @@ Public Class Form1
     Private ServerName As String = String.Empty
     Private BotId As String = String.Empty
     Private MainChannel As String = String.Empty
+    Private WelcomeChannel As String = String.Empty
     Private CoinValueChannel As String = String.Empty
     Private BotControlChannel As String = String.Empty
     Private Smiley As String = String.Empty
@@ -40,7 +41,9 @@ Public Class Form1
     End Function
 
     Private Async Function OnGuildMemberAdd(ByVal e As GuildMemberAddEventArgs) As Task Handles DiscordClient.GuildMemberAdded
-        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(402802330728267776), "Démosle una cordial bienvenida a " & e.Member.Mention & " al chat de " + ServerName + " " + Smiley)
+        Dim ChannelToUse As ULong = Nothing
+        If String.IsNullOrEmpty(WelcomeChannel) Then WelcomeChannel = MainChannel Else WelcomeChannel = WelcomeChannel
+        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(ChannelToUse), "Démosle una cordial bienvenida a " & e.Member.Mention & " al chat de " + ServerName + " " + Smiley)
     End Function
     Private Function FindUserInFile(user As String)
         Dim userInFile As String = String.Empty
@@ -130,7 +133,7 @@ Public Class Form1
         Return hasRows
     End Function
     Private Function GetActivity(ServerName As String, Optional day As String = "", Optional time As String = "") As String
-        ServerName = ServerName.Replace(" ", "").tolower
+        ServerName = ServerName.Replace(" ", "").ToLower
         Dim eventOrEvents As String = String.Empty
         If Not String.IsNullOrEmpty(day) Then
             If String.IsNullOrEmpty(time) Then
@@ -146,7 +149,7 @@ Public Class Form1
         Return eventOrEvents
     End Function
     Private Function GetSingleDayActivity(ServerName As String, day As String) As String
-        ServerName = ServerName.Replace(" ", "").tolower
+        ServerName = ServerName.Replace(" ", "").ToLower
         Dim dayConvertetToInt = ReturnIntFromDayString(day)
         Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername = " + ServerName + " AND day=" + dayConvertetToInt + " ORDER BY day;"
         Dim hasRows As Boolean = False
@@ -167,9 +170,9 @@ Public Class Form1
         Return events
     End Function
     Private Function GetAllAcivities(ServerName As String) As String
-        ServerName = ServerName.Replace(" ", "").tolower
+        ServerName = ServerName.Replace(" ", "").ToLower
         Dim eventsHeader As String = "Lista de eventos:" + vbCrLf
-        Dim events As String = String.empty
+        Dim events As String = String.Empty
         For day As Integer = 0 To 7
             Dim SQLQuery As String = "SELECT time, activityname FROM activities WHERE servername = " + ServerName + " AND day = " + day + " ORDER BY day, time;"
             Dim hasRows As Boolean = False
@@ -195,7 +198,7 @@ Public Class Form1
         Return events
     End Function
     Private Function GetSpecificActivity(ServerName As String, day As String, time As String) As String
-        ServerName = ServerName.Replace(" ", "").tolower
+        ServerName = ServerName.Replace(" ", "").ToLower
         Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername = " + ServerName + " AND day=" + day + " AND time='" + time & "' ORDER BY day, time;"
         Dim hasRows As Boolean = False
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
@@ -215,7 +218,7 @@ Public Class Form1
         Return events
     End Function
     Private Sub AddEvent(ServerName As String, day As String, time As String, message As String)
-        ServerName = ServerName.Replace(" ", "").tolower
+        ServerName = ServerName.Replace(" ", "").ToLower
         day = ReturnIntFromDayString(day)
         time = TimeToMySQLFormat(time)
         Dim SQLQuery As String = "INSERT INTO activities (servername, day, time, activityname) VALUES ('" + ServerName + "', '" + day + "', '" + time + "', '" + message + "')"
@@ -226,7 +229,7 @@ Public Class Form1
         Connection.Close()
     End Sub
     Private Sub UpdateEvent(ServerName As String, day As String, time As String, message As String)
-        ServerName = ServerName.Replace(" ", "").tolower
+        ServerName = ServerName.Replace(" ", "").ToLower
         day = ReturnIntFromDayString(day)
         time = TimeToMySQLFormat(time)
         Dim SQLQuery As String = "UPDATE activities SET activityname = '" + message + "' WHERE servername = " + ServerName + " AND day='" + day + "' AND time='" + time + "'"
@@ -237,7 +240,7 @@ Public Class Form1
         Connection.Close()
     End Sub
     Private Sub DeleteEvent(ServerName As String, day As String, time As String)
-        ServerName = ServerName.Replace(" ", "").tolower
+        ServerName = ServerName.Replace(" ", "").ToLower
         day = ReturnIntFromDayString(day)
         time = TimeToMySQLFormat(time)
         Dim SQLQuery As String = "DELETE FROM activities WHERE servername = " + ServerName + " AND day='" + day + "' AND time='" + time + "'"
@@ -361,7 +364,7 @@ Public Class Form1
                                        "!perfil (usuario) - Dice el perfil tuyo o de un usuario." & vbCrLf &
                                        "!clases - muestra las clases que se realizan en el grupo" & vbCrLf &
                                        vbCrLf & "También, puedes escribir algunas cosas naturalmente, como qué hora es y qué día es hoy." & vbCrLf & vbCrLf &
-                                       MentionMoises.Mention & " es un Witness. Si te gusta este bot y sus proyectos, considera votándolo como Witness :smiley:")
+                                       MentionMoises.Mention & " es un Witness. Si te gusta este bot y sus proyectos, considera votándolo como Witness " + Smiley)
                     Threading.Thread.Sleep(500)
                     Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", los comandos se han enviado por mensaje privado")
                 ElseIf e.Message.Content.ToLower().Contains("!clase") Then
@@ -446,30 +449,30 @@ Public Class Form1
                 ElseIf e.Message.Content.ToLower().Contains("!seguidores") Then
                     Dim FollowerNumber As Integer = GetResultFromSteemPlaceAPI(User, "followers")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & FollowerNumber & " seguidores :smiley:")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & FollowerNumber & " seguidores " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & FollowerNumber & " seguidores :smiley:")
+                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & FollowerNumber & " seguidores " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!siguiendo") Then
                     Dim FollowingNumber As Integer = GetResultFromSteemPlaceAPI(User, "following")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", sigues a " & FollowingNumber & " perfiles :smiley:")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", sigues a " & FollowingNumber & " perfiles " + Smiley)
                     Else
                         Await e.Channel.SendMessageAsync("@" & User & " sigue a " & FollowingNumber & " perfiles :smiley:  ")
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!ubicación") Or e.Message.Content.ToLower.Contains("!ubicacion") Then
                     Dim location As String = GetResultFromSteemPlaceAPI(User, "location")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & " es de " & location & " :smiley:")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & " es de " & location & " " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & " es de " & location & " :smiley:")
+                        Await e.Channel.SendMessageAsync("@" & User & " es de " & location & " " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!posts") Then
                     Dim postNumber As Integer = GetResultFromSteemPlaceAPI(User, "posts")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & postNumber & " posts y comentarios combinados :smiley:")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & postNumber & " posts y comentarios combinados " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & postNumber & " posts y comentarios combinados :smiley:")
+                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & postNumber & " posts y comentarios combinados " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!creacion") Or e.Message.Content.ToLower().Contains("!creación") Or e.Message.Content.ToLower().Contains("!registro") Then
                     Dim DateAndTime As Date = GetResultFromSteemPlaceAPI(User, "creation")
@@ -764,7 +767,7 @@ Public Class Form1
                                     End If
                                 End If
                             Else
-                                'Code to list activities goes here
+                                GetActivity(ServerName)
                             End If
                         Catch
                             ErrorOccurred = True
@@ -869,11 +872,11 @@ Public Class Form1
 ":rotating_light: En este canal, no se permiten posts. Por favor, utiliza el canal de promoción para promocionar tu post :rotating_light:" & vbCrLf &
 ":police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: " & vbCrLf &
 ":warning: Por favor, escribe para confirmar que viste la advertencia :warning: Infracciones múltiples resultarán en tu expulsión de este servidor."
-        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(402823764586397706), Message)
+        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(MainChannel), Message)
     End Sub
 
     Private Async Sub Button3_Click(sender As Object, e As System.EventArgs) Handles Button3.Click
-        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(402823764586397706), TextBox1.Text)
+        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(MainChannel), TextBox1.Text)
     End Sub
 
     Private Sub Form1_Load(sender As Object, e As System.EventArgs) Handles MyBase.Load
@@ -898,6 +901,9 @@ Public Class Form1
             ElseIf currentline.Contains("main-channel") Then
                 Dim GetMainChannel As String() = currentline.Split("=")
                 MainChannel = GetMainChannel(1)
+            ElseIf currentline.Contains("welcome-channel") Then
+                Dim GetWelcomeChannel As String() = currentline.Split("=")
+                WelcomeChannel = GetWelcomeChannel(1)
             ElseIf currentline.Contains("value-channel") Then
                 Dim GetCoinValueChannel As String() = currentline.Split("=")
                 CoinValueChannel = GetCoinValueChannel(1)
