@@ -10,14 +10,19 @@ Imports Newtonsoft.Json.Linq
 
 Public Class Form1
     Private WithEvents DiscordClient As DiscordClient
+    Private MySQLString As String = String.Empty
+    Private Token As String = String.Empty
+    Private LastUserGreeted As String = My.Settings.LastUserGreeted
+    Private LastUserGoodbye As String = My.Settings.LastUserGoodbye
+
     Private Async Sub Button1_Click(sender As Object, e As System.EventArgs) Handles Button1.Click
         Button1.Text = "Running"
-        Await StartAsync()
+        Await StartAsync(Token)
     End Sub
-    Public Async Function StartAsync() As Task
+    Public Async Function StartAsync(token As String) As Task
         Dim dcfg As New DiscordConfiguration
         With dcfg
-            .Token = My.Computer.FileSystem.ReadAllText("token.txt")
+            .Token = token
             .TokenType = TokenType.Bot
             .LogLevel = LogLevel.Debug
             .AutoReconnect = True
@@ -26,8 +31,7 @@ Public Class Form1
         Await Me.DiscordClient.ConnectAsync()
         Await Task.Delay(-1)
     End Function
-    Dim LastUserGreeted As String = My.Settings.LastUserGreeted
-    Dim LastUserGoodbye As String = My.Settings.LastUserGoodbye
+
     Private Async Function OnGuildMemberAdd(ByVal e As GuildMemberAddEventArgs) As Task Handles DiscordClient.GuildMemberAdded
         Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(402802330728267776), "Démosle una cordiál bienvenida a " & e.Member.Mention & " al chat de Ruta Blockchain :smiley:")
     End Function
@@ -647,7 +651,7 @@ Public Class Form1
                                     Await e.Channel.SendMessageAsync("El evento ha sido añadido :slight_smile:")
                                 Else
                                     Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
-                                                                     "Para cambiar o actualizar este evento, utilice el comando !actividad actualizar (día) (hora) (mensaje)" + Environment.NewLine + 
+                                                                     "Para cambiar o actualizar este evento, utilice el comando !actividad actualizar (día) (hora) (mensaje)" + Environment.NewLine +
                                                                      "Para borrar este evento, utilice el comando !actividad borrar (día) (hora)")
                                 End If
                             ElseIf SplitWords(1) = "actualizar" Then
@@ -823,18 +827,21 @@ Public Class Form1
     Private Async Sub Button3_Click(sender As Object, e As System.EventArgs) Handles Button3.Click
         Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(402823764586397706), TextBox1.Text)
     End Sub
-    Private MySQLString As String = String.Empty
+
     Private Sub Form1_Load(sender As Object, e As System.EventArgs) Handles MyBase.Load
-        Dim MySQLFile As StreamReader = New StreamReader("MySQLConfig.txt")
-        Dim currentline As String = ""
-        Dim MySQLServer As String = ""
-        Dim MySQLUser As String = ""
-        Dim MySQLPassword As String = ""
-        Dim MySQLDatabase As String = ""
-        Dim Ssl As String = ""
+        Dim MySQLFile As StreamReader = New StreamReader("Config.txt")
+        Dim currentline As String = String.Empty
+        Dim MySQLServer As String = String.Empty
+        Dim MySQLUser As String = String.Empty
+        Dim MySQLPassword As String = String.Empty
+        Dim MySQLDatabase As String = String.Empty
+        Dim Ssl As String = String.Empty
         While MySQLFile.EndOfStream = False
             currentline = MySQLFile.ReadLine
             If currentline.Contains("server") Then
+                Dim GetToken As String() = currentline.Split("=")
+                Token = GetToken(1)
+            ElseIf currentline.Contains("server") Then
                 Dim GetServer As String() = currentline.Split("=")
                 MySQLServer = GetServer(1)
             ElseIf currentline.Contains("username") Then
