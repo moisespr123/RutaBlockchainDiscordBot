@@ -18,6 +18,7 @@ Public Class Form1
     Private BotId As String = String.Empty
     Private MainChannel As String = String.Empty
     Private CoinValueChannel As String = String.Empty
+    Private BotControlChannel As String = String.Empty
     Private Smiley As String = String.Empty
 
 
@@ -640,64 +641,8 @@ Public Class Form1
                         Await e.Channel.SendMessageAsync("El perfil de @" & User & " es: " & vbCrLf & "en Steemit: https://steemit.com/@" & User & vbCrLf & "en Busy: https://busy.org/@" & User)
                     End If
                 End If
-            ElseIf e.Channel.Id = 454673311322865665 Then
-                If e.Message.Content.ToLower().Contains("!actividad") Then
-                    Dim SplitWords As String() = e.Message.Content.Split(" ")
-                    Dim ErrorOccurred As Boolean = False
-                    Try
-                        If SplitWords.Count > 1 Then
-                            If SplitWords(1) = "añadir" Then
-                                Dim ActivityName As String = String.Empty
-                                For currentword = 5 To SplitWords.Count - 1
-                                    ActivityName += SplitWords(currentword) + " "
-                                Next
-                                Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
-                                If Not TimeslotInUse Then
-                                    AddEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4), SplitWords(5))
-                                    Await e.Channel.SendMessageAsync("El evento ha sido añadido :slight_smile:")
-                                Else
-                                    Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
-                                                                     "Para cambiar o actualizar este evento, utilice el comando !actividad actualizar (día) (hora) (mensaje)" + Environment.NewLine +
-                                                                     "Para borrar este evento, utilice el comando !actividad borrar (día) (hora)")
-                                End If
-                            ElseIf SplitWords(1) = "actualizar" Then
-                                Dim ActivityName As String = String.Empty
-                                For currentword = 5 To SplitWords.Count - 1
-                                    ActivityName += SplitWords(currentword) + " "
-                                Next
-                                Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
-                                If TimeslotInUse Then
-                                    UpdateEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4), ActivityName)
-                                    Await e.Channel.SendMessageAsync("El evento ha sido actualizado :slight_smile:")
-                                Else
-                                    Await e.Channel.SendMessageAsync("No existe evento para actualizar en ese día a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
-                                                                     "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
-                                End If
-                            ElseIf SplitWords(1) = "borrar" Then
-                                Dim ActivityName As String = String.Empty
-                                For currentword = 5 To SplitWords.Count - 1
-                                    ActivityName += SplitWords(currentword) + " "
-                                Next
-                                Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
-                                If TimeslotInUse Then
-                                    DeleteEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
-                                    Await e.Channel.SendMessageAsync("El evento ha sido sido borrado :slight_smile:")
-                                Else
-                                    Await e.Channel.SendMessageAsync("No existe evento para borrar en ese día a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
-                                                                     "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
-                                End If
-                            End If
-                        Else
-                            'Code to list activities goes here
-                        End If
-                    Catch
-                        ErrorOccurred = True
-                    End Try
-                    If ErrorOccurred Then Await e.Channel.SendMessageAsync("Ha ocurrido un error. Asegúrese que el formato del mensaje es por ejemplo:" & vbCrLf & "!actividad añadir lunes 9:00 PM una actividad")
-                End If
             End If
             If Not String.IsNullOrEmpty(CoinValueChannel) Then
-
                 If e.Channel.Id = CoinValueChannel Then
                     If e.Message.Content.ToLower().Contains("!valor") Then
                         Dim Reply As String = String.Empty
@@ -731,6 +676,64 @@ Public Class Form1
                             Reply = GetOrCalculatePrice("steem", "USD")
                             Await e.Channel.SendMessageAsync(Reply)
                         End If
+                    End If
+                End If
+            End If
+            If Not String.IsNullOrEmpty(BotControlChannel) Then
+                If e.Channel.Id = 454673311322865665 Then
+                    If e.Message.Content.ToLower().Contains("!actividad") Then
+                        Dim SplitWords As String() = e.Message.Content.Split(" ")
+                        Dim ErrorOccurred As Boolean = False
+                        Try
+                            If SplitWords.Count > 1 Then
+                                If SplitWords(1) = "añadir" Then
+                                    Dim ActivityName As String = String.Empty
+                                    For currentword = 5 To SplitWords.Count - 1
+                                        ActivityName += SplitWords(currentword) + " "
+                                    Next
+                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                    If Not TimeslotInUse Then
+                                        AddEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4), SplitWords(5))
+                                        Await e.Channel.SendMessageAsync("El evento ha sido añadido :slight_smile:")
+                                    Else
+                                        Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
+                                                                         "Para cambiar o actualizar este evento, utilice el comando !actividad actualizar (día) (hora) (mensaje)" + Environment.NewLine +
+                                                                         "Para borrar este evento, utilice el comando !actividad borrar (día) (hora)")
+                                    End If
+                                ElseIf SplitWords(1) = "actualizar" Then
+                                    Dim ActivityName As String = String.Empty
+                                    For currentword = 5 To SplitWords.Count - 1
+                                        ActivityName += SplitWords(currentword) + " "
+                                    Next
+                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                    If TimeslotInUse Then
+                                        UpdateEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4), ActivityName)
+                                        Await e.Channel.SendMessageAsync("El evento ha sido actualizado :slight_smile:")
+                                    Else
+                                        Await e.Channel.SendMessageAsync("No existe evento para actualizar en ese día a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
+                                                                         "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
+                                    End If
+                                ElseIf SplitWords(1) = "borrar" Then
+                                    Dim ActivityName As String = String.Empty
+                                    For currentword = 5 To SplitWords.Count - 1
+                                        ActivityName += SplitWords(currentword) + " "
+                                    Next
+                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                    If TimeslotInUse Then
+                                        DeleteEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                        Await e.Channel.SendMessageAsync("El evento ha sido sido borrado :slight_smile:")
+                                    Else
+                                        Await e.Channel.SendMessageAsync("No existe evento para borrar en ese día a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
+                                                                         "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
+                                    End If
+                                End If
+                            Else
+                                'Code to list activities goes here
+                            End If
+                        Catch
+                            ErrorOccurred = True
+                        End Try
+                        If ErrorOccurred Then Await e.Channel.SendMessageAsync("Ha ocurrido un error. Asegúrese que el formato del mensaje es por ejemplo:" & vbCrLf & "!actividad añadir lunes 9:00 PM una actividad")
                     End If
                 End If
             End If
