@@ -116,7 +116,7 @@ Public Class Form1
         Dim readStream As New StreamReader(ReceiveStream, encode)
         Return readStream.ReadLine
     End Function
-    Private Function CheckIfActivityExists(day As String, time As String) As Boolean
+    Private Function CheckIfActivityExists(ServerName As String, day As String, time As String) As Boolean
         day = ReturnIntFromDayString(day)
         time = TimeToMySQLFormat(time)
         Dim hasRows As Boolean = False
@@ -129,22 +129,24 @@ Public Class Form1
         Connection.Close()
         Return hasRows
     End Function
-    Private Function GetActivity(Optional day As String = "", Optional time As String = "") As String
+    Private Function GetActivity(ServerName As String, Optional day As String = "", Optional time As String = "") As String
         Dim eventOrEvents As String = String.Empty
         If Not String.IsNullOrEmpty(day) Then
             If String.IsNullOrEmpty(time) Then
-                eventOrEvents = GetSingleDayActivity(day)
+                eventOrEvents = GetSingleDayActivity(ServerName, day)
             Else
                 day = ReturnIntFromDayString(day)
                 time = TimeToMySQLFormat(time)
-                eventOrEvents = GetSpecificActivity(day, time)
+                eventOrEvents = GetSpecificActivity(ServerName, day, time)
             End If
+        Else
+            'Call to function that returns all events goes here
         End If
         Return eventOrEvents
     End Function
-    Private Function GetSingleDayActivity(day As String) As String
+    Private Function GetSingleDayActivity(ServerName As String, day As String) As String
         Dim dayConvertetToInt = ReturnIntFromDayString(day)
-        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE day=" + dayConvertetToInt + " ORDER BY day;"
+        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername = " + ServerName + " AND day=" + dayConvertetToInt + " ORDER BY day;"
         Dim hasRows As Boolean = False
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
         Dim Command As New MySqlCommand(SQLQuery, Connection)
@@ -162,8 +164,8 @@ Public Class Form1
         Connection.Close()
         Return events
     End Function
-    Private Function GetSpecificActivity(day As String, time As String) As String
-        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE day=" + day + " AND time='" + time & "' ORDER BY day, time;"
+    Private Function GetSpecificActivity(ServerName As String, day As String, time As String) As String
+        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername = " + ServerName + " AND day=" + day + " AND time='" + time & "' ORDER BY day, time;"
         Dim hasRows As Boolean = False
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
         Dim Command As New MySqlCommand(SQLQuery, Connection)
@@ -181,30 +183,30 @@ Public Class Form1
         Connection.Close()
         Return events
     End Function
-    Private Sub AddEvent(day As String, time As String, message As String)
+    Private Sub AddEvent(ServerName As String, day As String, time As String, message As String)
         day = ReturnIntFromDayString(day)
         time = TimeToMySQLFormat(time)
-        Dim SQLQuery As String = "INSERT INTO activities (day, time, activityname) VALUES ('" + day + "', '" + time + "', '" + message + "')"
+        Dim SQLQuery As String = "INSERT INTO activities (servername, day, time, activityname) VALUES ('" + ServerName + "', '" + day + "', '" + time + "', '" + message + "')"
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
         Dim Command As New MySqlCommand(SQLQuery, Connection)
         Connection.Open()
         Command.ExecuteNonQuery()
         Connection.Close()
     End Sub
-    Private Sub UpdateEvent(day As String, time As String, message As String)
+    Private Sub UpdateEvent(ServerName As String, day As String, time As String, message As String)
         day = ReturnIntFromDayString(day)
         time = TimeToMySQLFormat(time)
-        Dim SQLQuery As String = "UPDATE activities SET activityname = '" + message + "' WHERE day='" + day + "' AND time='" + time + "'"
+        Dim SQLQuery As String = "UPDATE activities SET activityname = '" + message + "' WHERE servername = " + ServerName + " AND day='" + day + "' AND time='" + time + "'"
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
         Dim Command As New MySqlCommand(SQLQuery, Connection)
         Connection.Open()
         Command.ExecuteNonQuery()
         Connection.Close()
     End Sub
-    Private Sub DeleteEvent(day As String, time As String)
+    Private Sub DeleteEvent(ServerName As String, day As String, time As String)
         day = ReturnIntFromDayString(day)
         time = TimeToMySQLFormat(time)
-        Dim SQLQuery As String = "DELETE FROM activities WHERE day='" + day + "' AND time='" + time + "'"
+        Dim SQLQuery As String = "DELETE FROM activities WHERE servername = " + ServerName + " AND day='" + day + "' AND time='" + time + "'"
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
         Dim Command As New MySqlCommand(SQLQuery, Connection)
         Connection.Open()
