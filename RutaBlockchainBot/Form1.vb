@@ -159,11 +159,11 @@ Public Class Form1
         Dim Command As New MySqlCommand(SQLQuery, Connection)
         Connection.Open()
         Dim reader As MySqlDataReader = Command.ExecuteReader
-        Dim events As String = "Eventos del " + day + vbCrLf
+        Dim events As String = "Eventos del " + day + ":" + vbCrLf
         If reader.HasRows Then
             While reader.Read
-                Dim dateConverted = Convert.ToDateTime(reader("time"))
-                events += dateConverted.ToString("HH:mm:ss t") + " - " + reader("activityname") + vbCrLf
+                 Dim dateConverted As String = TimeFromMySQLFormat(reader.GetTimeSpan("time").ToString)
+                events += dateConverted + " - " + reader("activityname") + vbCrLf
             End While
         Else
             events = "No hay eventos para este día"
@@ -201,7 +201,7 @@ Public Class Form1
     End Function
     Private Function GetSpecificActivity(ServerName As String, day As String, time As String) As String
         ServerName = ServerName.Replace(" ", "").ToLower
-        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername='" + ServerName + "' AND day=" + day + " AND time='" + time & "' ORDER BY day, time;"
+        Dim SQLQuery As String = "SELECT activityname FROM activities WHERE servername='" + ServerName + "' AND day=" + day + " AND time='" + time & "' ORDER BY day, time;"
         Dim hasRows As Boolean = False
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
         Dim Command As New MySqlCommand(SQLQuery, Connection)
@@ -210,7 +210,6 @@ Public Class Form1
         Dim events As String = String.Empty
         If reader.HasRows Then
             While reader.Read
-                Dim dateConverted = Convert.ToDateTime(reader.GetString("time"))
                 events = +reader("activityname") + vbCrLf
             End While
         Else
@@ -444,7 +443,12 @@ Public Class Form1
                 ElseIf e.Message.Content.ToLower().Contains("buena noticia") Or e.Message.Content.ToLower().Contains("buenas noticias") Then
                     Await e.Channel.SendMessageAsync("¡Enhorabuena!")
                 ElseIf e.Message.Content.ToLower().Contains("!actividad") Then
-                      Await e.Channel.SendMessageAsync(GetActivity(ServerName))
+                    Dim SplitWords As String() = e.Message.Content.Split(" ")
+                    If SplitWords.Count > 1 Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, SplitWords(1)))
+                    Else
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName))
+                    End If
                 ElseIf e.Message.Content.ToLower().Contains("!seguidores") Then
                     Dim FollowerNumber As Integer = GetResultFromSteemPlaceAPI(User, "followers")
                     If IsUserInDiscord Then
@@ -748,10 +752,10 @@ Public Class Form1
                                         UpdateEvent(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4), ActivityName)
                                         Await e.Channel.SendMessageAsync("El evento ha sido actualizado :slight_smile:")
                                     Else
-                                        Await e.Channel.SendMessageAsync("No existe evento para actualizar en ese día a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
+                                        Await e.Channel.SendMessageAsync("No existe evento para actualizar en ese día a esta hora." + Environment.NewLine +
                                                                          "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
                                     End If
-                                ElseIf SplitWords(1) = "borrar" Then
+                                ElseIf SplitWords(1) = "borrar" Or SplitWords(1) = "remover" Or SplitWords(1) = "eliminar" Then
                                     Dim ActivityName As String = String.Empty
                                     For currentword = 5 To SplitWords.Count - 1
                                         ActivityName += SplitWords(currentword) + " "
