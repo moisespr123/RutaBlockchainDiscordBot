@@ -190,6 +190,16 @@ Public Class Form1
         Command.ExecuteNonQuery()
         Connection.Close()
     End Sub
+    Private Sub DeleteEvent(day As String, time As String)
+        day = ReturnIntFromDayString(day)
+        time = TimeToMySQLFormat(time)
+        Dim SQLQuery As String = "DELETE FROM activities WHERE day='" + day + "' AND time='" + time + "'"
+        Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+        Dim Command As New MySqlCommand(SQLQuery, Connection)
+        Connection.Open()
+        Command.ExecuteNonQuery()
+        Connection.Close()
+    End Sub
     Private Function TimeToMySQLFormat(time As String) As String
         Dim timeSplit As String() = time.Split(":")
         If timeSplit(1).Contains("PM") Then
@@ -637,7 +647,8 @@ Public Class Form1
                                     Await e.Channel.SendMessageAsync("El evento ha sido añadido :slight_smile:")
                                 Else
                                     Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
-                                                                     "Para cambiar o actualizar este evento, utilice el comando !actividad actualizar (día) (hora) (mensaje)")
+                                                                     "Para cambiar o actualizar este evento, utilice el comando !actividad actualizar (día) (hora) (mensaje)" + Environment.NewLine + 
+                                                                     "Para borrar este evento, utilice el comando !actividad borrar (día) (hora)")
                                 End If
                             ElseIf SplitWords(1) = "actualizar" Then
                                 Dim ActivityName As String = String.Empty
@@ -649,7 +660,20 @@ Public Class Form1
                                     UpdateEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4), ActivityName)
                                     Await e.Channel.SendMessageAsync("El evento ha sido actualizado :slight_smile:")
                                 Else
-                                    Await e.Channel.SendMessageAsync("No existe evento para actualizar a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
+                                    Await e.Channel.SendMessageAsync("No existe evento para actualizar en ese día a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
+                                                                     "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
+                                End If
+                            ElseIf SplitWords(1) = "borrar" Then
+                                Dim ActivityName As String = String.Empty
+                                For currentword = 5 To SplitWords.Count - 1
+                                    ActivityName += SplitWords(currentword) + " "
+                                Next
+                                Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                If TimeslotInUse Then
+                                    DeleteEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                    Await e.Channel.SendMessageAsync("El evento ha sido sido borrado :slight_smile:")
+                                Else
+                                    Await e.Channel.SendMessageAsync("No existe evento para borrar en ese día a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
                                                                      "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
                                 End If
                             End If
