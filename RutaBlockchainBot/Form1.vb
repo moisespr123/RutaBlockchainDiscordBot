@@ -146,14 +146,14 @@ Public Class Form1
                 eventOrEvents = GetSpecificActivity(ServerName, day, time)
             End If
         Else
-            GetAllAcivities(ServerName)
+            eventOrEvents = GetAllAcivities(ServerName)
         End If
         Return eventOrEvents
     End Function
     Private Function GetSingleDayActivity(ServerName As String, day As String) As String
         ServerName = ServerName.Replace(" ", "").ToLower
         Dim dayConvertetToInt = ReturnIntFromDayString(day)
-        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername = " + ServerName + " AND day=" + dayConvertetToInt + " ORDER BY day;"
+        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername='" + ServerName + "' AND day=" + dayConvertetToInt + " ORDER BY day;"
         Dim hasRows As Boolean = False
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
         Dim Command As New MySqlCommand(SQLQuery, Connection)
@@ -175,8 +175,8 @@ Public Class Form1
         ServerName = ServerName.Replace(" ", "").ToLower
         Dim eventsHeader As String = "Lista de eventos:" + vbCrLf
         Dim events As String = String.Empty
-        For day As Integer = 0 To 7
-            Dim SQLQuery As String = "SELECT time, activityname FROM activities WHERE servername = " + ServerName + " AND day = " + day + " ORDER BY day, time;"
+        For day As Integer = 1 To 7
+            Dim SQLQuery As String = "SELECT time, activityname FROM activities WHERE servername='" + ServerName + "' AND day = " + day.ToString + " ORDER BY day, time;"
             Dim hasRows As Boolean = False
             Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
             Dim Command As New MySqlCommand(SQLQuery, Connection)
@@ -185,8 +185,8 @@ Public Class Form1
             If reader.HasRows Then
                 events += ReturnStringFromDayInt(day) + ":" + vbCrLf
                 While reader.Read
-                    Dim dateConverted = Convert.ToDateTime(reader("time"))
-                    events += dateConverted.ToString("HH:mm:ss t") + " - " + reader("activityname") + vbCrLf
+                    Dim dateConverted As String = TimeFromMySQLFormat(reader.GetTimeSpan("time").ToString)
+                    events += dateConverted + " - " + reader("activityname") + vbCrLf
                 End While
                 events += vbCrLf
             End If
@@ -201,7 +201,7 @@ Public Class Form1
     End Function
     Private Function GetSpecificActivity(ServerName As String, day As String, time As String) As String
         ServerName = ServerName.Replace(" ", "").ToLower
-        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername = " + ServerName + " AND day=" + day + " AND time='" + time & "' ORDER BY day, time;"
+        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername='" + ServerName + "' AND day=" + day + " AND time='" + time & "' ORDER BY day, time;"
         Dim hasRows As Boolean = False
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
         Dim Command As New MySqlCommand(SQLQuery, Connection)
@@ -210,7 +210,7 @@ Public Class Form1
         Dim events As String = String.Empty
         If reader.HasRows Then
             While reader.Read
-                Dim dateConverted = Convert.ToDateTime(reader("time"))
+                Dim dateConverted = Convert.ToDateTime(reader.GetString("time"))
                 events = +reader("activityname") + vbCrLf
             End While
         Else
@@ -234,7 +234,7 @@ Public Class Form1
         ServerName = ServerName.Replace(" ", "").ToLower
         day = ReturnIntFromDayString(day)
         time = TimeToMySQLFormat(time)
-        Dim SQLQuery As String = "UPDATE activities SET activityname = '" + message + "' WHERE servername = " + ServerName + " AND day='" + day + "' AND time='" + time + "'"
+        Dim SQLQuery As String = "UPDATE activities SET activityname = '" + message + "' WHERE servername='" + ServerName + "' AND day='" + day + "' AND time='" + time + "'"
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
         Dim Command As New MySqlCommand(SQLQuery, Connection)
         Connection.Open()
@@ -245,7 +245,7 @@ Public Class Form1
         ServerName = ServerName.Replace(" ", "").ToLower
         day = ReturnIntFromDayString(day)
         time = TimeToMySQLFormat(time)
-        Dim SQLQuery As String = "DELETE FROM activities WHERE servername = " + ServerName + " AND day='" + day + "' AND time='" + time + "'"
+        Dim SQLQuery As String = "DELETE FROM activities WHERE servername='" + ServerName + "' AND day='" + day + "' AND time='" + time + "'"
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
         Dim Command As New MySqlCommand(SQLQuery, Connection)
         Connection.Open()
@@ -266,16 +266,11 @@ Public Class Form1
         Dim checkHour As Integer = Convert.ToInt16(timeSplit(0))
         If checkHour > 12 Then
             checkHour -= 12
-            time = checkHour + timeSplit(1).Split(".")(0) + " AM"
+            time = checkHour.ToString + ":" + timeSplit(1) + " PM"
         Else
-            time = checkHour + timeSplit(1).Split(".")(0) + " PM"
+            time = checkHour.ToString + ":" + timeSplit(1) + " AM"
         End If
-        If timeSplit(1).Contains("PM") Then
-            timeSplit(0) = (Convert.ToInt16(timeSplit(0)) + 12).ToString
-        End If
-        time = timeSplit(0) + ":" + timeSplit(1)
-        timeSplit = time.Split(" ")
-        Return timeSplit(0)
+        Return time
     End Function
     Private Function ReturnIntFromDayString(day As String) As String
         day = day.ToLower()
@@ -449,7 +444,7 @@ Public Class Form1
                 ElseIf e.Message.Content.ToLower().Contains("buena noticia") Or e.Message.Content.ToLower().Contains("buenas noticias") Then
                     Await e.Channel.SendMessageAsync("¡Enhorabuena!")
                 ElseIf e.Message.Content.ToLower().Contains("!actividad") Then
-                    GetActivity(ServerName)
+                      Await e.Channel.SendMessageAsync(GetActivity(ServerName))
                 ElseIf e.Message.Content.ToLower().Contains("!seguidores") Then
                     Dim FollowerNumber As Integer = GetResultFromSteemPlaceAPI(User, "followers")
                     If IsUserInDiscord Then
@@ -771,7 +766,7 @@ Public Class Form1
                                     End If
                                 End If
                             Else
-                                GetActivity(ServerName)
+                                Await e.Channel.SendMessageAsync(GetActivity(ServerName))
                             End If
                         Catch
                             ErrorOccurred = True
@@ -905,6 +900,9 @@ Public Class Form1
             ElseIf currentline.Contains("main-channel") Then
                 Dim GetMainChannel As String() = currentline.Split("=")
                 MainChannel = GetMainChannel(1)
+            ElseIf currentline.Contains("botcontrol-channel") Then
+                Dim GetControlChannel As String() = currentline.Split("=")
+                BotControlChannel = GetControlChannel(1)
             ElseIf currentline.Contains("welcome-channel") Then
                 Dim GetWelcomeChannel As String() = currentline.Split("=")
                 WelcomeChannel = GetWelcomeChannel(1)
