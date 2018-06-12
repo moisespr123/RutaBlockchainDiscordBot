@@ -130,6 +130,7 @@ Public Class Form1
         Return hasRows
     End Function
     Private Function GetActivity(ServerName As String, Optional day As String = "", Optional time As String = "") As String
+        ServerName = ServerName.Replace(" ", "").tolower
         Dim eventOrEvents As String = String.Empty
         If Not String.IsNullOrEmpty(day) Then
             If String.IsNullOrEmpty(time) Then
@@ -140,11 +141,12 @@ Public Class Form1
                 eventOrEvents = GetSpecificActivity(ServerName, day, time)
             End If
         Else
-            'Call to function that returns all events goes here
+            GetAllAcivities(ServerName)
         End If
         Return eventOrEvents
     End Function
     Private Function GetSingleDayActivity(ServerName As String, day As String) As String
+        ServerName = ServerName.Replace(" ", "").tolower
         Dim dayConvertetToInt = ReturnIntFromDayString(day)
         Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername = " + ServerName + " AND day=" + dayConvertetToInt + " ORDER BY day;"
         Dim hasRows As Boolean = False
@@ -164,7 +166,36 @@ Public Class Form1
         Connection.Close()
         Return events
     End Function
+    Private Function GetAllAcivities(ServerName As String) As String
+        ServerName = ServerName.Replace(" ", "").tolower
+        Dim eventsHeader As String = "Lista de eventos:" + vbCrLf
+        Dim events As String = String.empty
+        For day As Integer = 0 To 7
+            Dim SQLQuery As String = "SELECT time, activityname FROM activities WHERE servername = " + ServerName + " AND day = " + day + " ORDER BY day, time;"
+            Dim hasRows As Boolean = False
+            Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+            Dim Command As New MySqlCommand(SQLQuery, Connection)
+            Connection.Open()
+            Dim reader As MySqlDataReader = Command.ExecuteReader
+            If reader.HasRows Then
+                events += ReturnStringFromDayInt(day) + ":" + vbCrLf
+                While reader.Read
+                    Dim dateConverted = Convert.ToDateTime(reader("time"))
+                    events += dateConverted.ToString("HH:mm:ss t") + " - " + reader("activityname") + vbCrLf
+                End While
+                events += vbCrLf
+            End If
+            Connection.Close()
+        Next
+        If Not String.IsNullOrEmpty(events) Then
+            events = eventsHeader + events
+        Else
+            events = "No hay eventos actualmente en la semana"
+        End If
+        Return events
+    End Function
     Private Function GetSpecificActivity(ServerName As String, day As String, time As String) As String
+        ServerName = ServerName.Replace(" ", "").tolower
         Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername = " + ServerName + " AND day=" + day + " AND time='" + time & "' ORDER BY day, time;"
         Dim hasRows As Boolean = False
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
@@ -184,6 +215,7 @@ Public Class Form1
         Return events
     End Function
     Private Sub AddEvent(ServerName As String, day As String, time As String, message As String)
+        ServerName = ServerName.Replace(" ", "").tolower
         day = ReturnIntFromDayString(day)
         time = TimeToMySQLFormat(time)
         Dim SQLQuery As String = "INSERT INTO activities (servername, day, time, activityname) VALUES ('" + ServerName + "', '" + day + "', '" + time + "', '" + message + "')"
@@ -194,6 +226,7 @@ Public Class Form1
         Connection.Close()
     End Sub
     Private Sub UpdateEvent(ServerName As String, day As String, time As String, message As String)
+        ServerName = ServerName.Replace(" ", "").tolower
         day = ReturnIntFromDayString(day)
         time = TimeToMySQLFormat(time)
         Dim SQLQuery As String = "UPDATE activities SET activityname = '" + message + "' WHERE servername = " + ServerName + " AND day='" + day + "' AND time='" + time + "'"
@@ -204,6 +237,7 @@ Public Class Form1
         Connection.Close()
     End Sub
     Private Sub DeleteEvent(ServerName As String, day As String, time As String)
+        ServerName = ServerName.Replace(" ", "").tolower
         day = ReturnIntFromDayString(day)
         time = TimeToMySQLFormat(time)
         Dim SQLQuery As String = "DELETE FROM activities WHERE servername = " + ServerName + " AND day='" + day + "' AND time='" + time + "'"
@@ -693,9 +727,9 @@ Public Class Form1
                                     For currentword = 5 To SplitWords.Count - 1
                                         ActivityName += SplitWords(currentword) + " "
                                     Next
-                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4))
                                     If Not TimeslotInUse Then
-                                        AddEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4), SplitWords(5))
+                                        AddEvent(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4), SplitWords(5))
                                         Await e.Channel.SendMessageAsync("El evento ha sido añadido :slight_smile:")
                                     Else
                                         Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
@@ -707,9 +741,9 @@ Public Class Form1
                                     For currentword = 5 To SplitWords.Count - 1
                                         ActivityName += SplitWords(currentword) + " "
                                     Next
-                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4))
                                     If TimeslotInUse Then
-                                        UpdateEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4), ActivityName)
+                                        UpdateEvent(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4), ActivityName)
                                         Await e.Channel.SendMessageAsync("El evento ha sido actualizado :slight_smile:")
                                     Else
                                         Await e.Channel.SendMessageAsync("No existe evento para actualizar en ese día a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
@@ -720,9 +754,9 @@ Public Class Form1
                                     For currentword = 5 To SplitWords.Count - 1
                                         ActivityName += SplitWords(currentword) + " "
                                     Next
-                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4))
                                     If TimeslotInUse Then
-                                        DeleteEvent(SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                        DeleteEvent(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4))
                                         Await e.Channel.SendMessageAsync("El evento ha sido sido borrado :slight_smile:")
                                     Else
                                         Await e.Channel.SendMessageAsync("No existe evento para borrar en ese día a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
