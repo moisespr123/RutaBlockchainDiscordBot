@@ -936,6 +936,7 @@ Public Class Form1
                 Ssl = GetSSLMode(1)
             End If
         End While
+        Me.Text = ServerName + " Discord Bot"
         MySQLString = "server=" + MySQLServer + ";user=" + MySQLUser + ";database=" + MySQLDatabase + ";port=3306;password=" + MySQLPassword + ";sslmode= " + Ssl
     End Sub
 End Class

@@ -76,7 +76,7 @@ Partial Class Form1
         Me.Controls.Add(Me.Button1)
         Me.MaximizeBox = false
         Me.Name = "Form1"
-        Me.Text = "Ruta Blockain Discord Bot"
+        Me.Text = "Discord Bot"
         Me.ResumeLayout(false)
         Me.PerformLayout
 
