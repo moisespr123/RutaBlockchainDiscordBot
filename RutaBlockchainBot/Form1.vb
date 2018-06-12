@@ -17,11 +17,11 @@ Public Class Form1
     Private ServerName As String = String.Empty
     Private BotId As String = String.Empty
     Private MainChannel As String = String.Empty
+    Private WelcomeEnabled As Boolean = False
     Private WelcomeChannel As String = String.Empty
     Private CoinValueChannel As String = String.Empty
     Private BotControlChannel As String = String.Empty
     Private Smiley As String = String.Empty
-
 
     Private Async Sub Button1_Click(sender As Object, e As System.EventArgs) Handles Button1.Click
         Button1.Text = "Running"
@@ -41,9 +41,11 @@ Public Class Form1
     End Function
 
     Private Async Function OnGuildMemberAdd(ByVal e As GuildMemberAddEventArgs) As Task Handles DiscordClient.GuildMemberAdded
-        Dim ChannelToUse As ULong = Nothing
-        If String.IsNullOrEmpty(WelcomeChannel) Then WelcomeChannel = MainChannel Else WelcomeChannel = WelcomeChannel
-        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(ChannelToUse), "Démosle una cordial bienvenida a " & e.Member.Mention & " al chat de " + ServerName + " " + Smiley)
+        If WelcomeEnabled Then
+            Dim ChannelToUse As ULong = Nothing
+            If String.IsNullOrEmpty(WelcomeChannel) Then WelcomeChannel = MainChannel Else WelcomeChannel = WelcomeChannel
+            Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(ChannelToUse), "Démosle una cordial bienvenida a " & e.Member.Mention & " al chat de " + ServerName + " " + Smiley)
+        End If
     End Function
     Private Function FindUserInFile(user As String)
         Dim userInFile As String = String.Empty
@@ -904,6 +906,9 @@ Public Class Form1
             ElseIf currentline.Contains("welcome-channel") Then
                 Dim GetWelcomeChannel As String() = currentline.Split("=")
                 WelcomeChannel = GetWelcomeChannel(1)
+            ElseIf currentline.Contains("welcome-enabled") Then
+                Dim GetWelcomeEnabled As String() = currentline.Split("=")
+                If GetWelcomeEnabled(1) = "1" Or GetWelcomeEnabled(1).ToLower() = "true" Then WelcomeEnabled = True Else WelcomeEnabled = False
             ElseIf currentline.Contains("value-channel") Then
                 Dim GetCoinValueChannel As String() = currentline.Split("=")
                 CoinValueChannel = GetCoinValueChannel(1)
