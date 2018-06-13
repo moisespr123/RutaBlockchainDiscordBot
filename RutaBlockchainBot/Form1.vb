@@ -722,7 +722,7 @@ Public Class Form1
                 End If
             End If
             If Not String.IsNullOrEmpty(BotControlChannel) Then
-                If e.Channel.Id = 454673311322865665 Then
+                If e.Channel.Id = BotControlChannel Then
                     If e.Message.Content.ToLower().Contains("!actividad") Then
                         Dim SplitWords As String() = e.Message.Content.Split(" ")
                         Dim ErrorOccurred As Boolean = False
