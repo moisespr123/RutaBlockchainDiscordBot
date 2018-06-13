@@ -382,18 +382,11 @@ Public Class Form1
                                        "!google (terminos) - Busqueda en Google" & vbCrLf &
                                        "!wikipedia (artículo) - Busca en Wikipedia" & vbCrLf &
                                        "!perfil (usuario) - Dice el perfil tuyo o de un usuario." & vbCrLf &
-                                       "!clases - muestra las clases que se realizan en el grupo" & vbCrLf &
                                        vbCrLf & "También, puedes escribir algunas cosas naturalmente, como qué hora es y qué día es hoy." & vbCrLf & vbCrLf &
                                        MentionMoises.Mention & " es un Witness. Si te gusta este bot y sus proyectos, considera votarlo como Witness " + Smiley + vbCrLf + 
                                        "Vótalo usando el siguiente enlace: https://v2.steemconnect.com/sign/account-witness-vote?witness=moisesmcardona&approve=1")
                     Threading.Thread.Sleep(500)
                     Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", los comandos se han enviado por mensaje privado")
-                ElseIf e.Message.Content.ToLower().Contains("!clase") Then
-                    Await e.Channel.SendMessageAsync("Tenemos las siguientes clases en la semana: " & vbCrLf & vbCrLf &
-                                                     "Martes: Noche de poesía con @danvel" & vbCrLf &
-                                                     "Miércoles: Clase de ortografía y redacción con @marynessc" & vbCrLf &
-                                                     "Viernes: Tutoría de blog con @ivymalifred" & vbCrLf & vbCrLf &
-                                                     "Todas las clases son a las 7 PM hora de Venezuela")
                 ElseIf e.Message.Content.ToLower().Contains("!adn") Then
                     Await e.Channel.SendMessageAsync("Mi ADN es 100% tipo Visual Basic .NET")
                 ElseIf e.Message.Content.ToLower().Contains("!beso") Then
