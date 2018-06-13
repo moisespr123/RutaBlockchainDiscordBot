@@ -71,7 +71,7 @@ Public Class Form1
         For Each word In message
             If word.Contains("@") Then
                 If word.Contains("<") And word.Contains(">") Then
-                    UserToUse = word.Remove(word.Count - 1, 1).Remove(0, 2)
+                    UserToUse = word.Remove(word.Count - 1, 1).Remove(0, 3)
                 Else
                     UserToUse = word.Remove(0, 1)
                 End If
@@ -439,6 +439,18 @@ Public Class Form1
                 ElseIf e.Message.Content.ToLower().Contains("buenas noches") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
                         Await e.Channel.SendMessageAsync("Buenas Noches, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy,  " + GetDayName() + ":"))
+                        LastUserGreeted = e.Message.Author.Username
+                        SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
+                    End If
+                ElseIf e.Message.Content.ToLower().Contains("feliz dia") Or e.Message.Content.ToLower().Contains("felíz día") And e.Message.Content.Contains("@") = False Then
+                    If LastUserGreeted <> e.Message.Author.Username Then
+                        Await e.Channel.SendMessageAsync("Felíz Día, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy,  " + GetDayName() + ":"))
+                        LastUserGreeted = e.Message.Author.Username
+                        SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
+                    End If
+                ElseIf e.Message.Content.ToLower().Contains("feliz tarde") Or e.Message.Content.ToLower().Contains("felíz tarde") And e.Message.Content.Contains("@") = False Then
+                    If LastUserGreeted <> e.Message.Author.Username Then
+                        Await e.Channel.SendMessageAsync("Felíz Tarde, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy,  " + GetDayName() + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
