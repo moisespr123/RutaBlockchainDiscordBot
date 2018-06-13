@@ -402,50 +402,49 @@ Public Class Form1
                     Await e.Channel.SendMessageAsync(":kissing_heart: :kissing_heart: :kissing_heart: :kissing_heart: :kissing_heart: :kissing_heart: :kissing_heart:")
                 ElseIf e.Message.Content.ToLower().Contains("hola") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Hola, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetTodaysName, "Estos son los eventos que tenemos en el día de hoy,  " + GetTodaysName + ":"))
-
+                        Await e.Channel.SendMessageAsync("Hola, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetTodaysName, "Estos son los eventos que tenemos en el día de hoy,  " + GetTodaysName() + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("saludos") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Saludos, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Saludos, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetTodaysName, "Estos son los eventos que tenemos en el día de hoy,  " + GetTodaysName() + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("buenos dias") Or e.Message.Content.ToLower().Contains("buenos días") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Buenos Días, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Buenos Días, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetTodaysName, "Estos son los eventos que tenemos en el día de hoy,  " + GetTodaysName + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("buen dia") Or e.Message.Content.ToLower().Contains("buen día") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Buen Día, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Buen Día, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetTodaysName, "Estos son los eventos que tenemos en el día de hoy,  " + GetTodaysName + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("buenas tardes") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Buenas Tardes, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Buenas Tardes, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetTodaysName, "Estos son los eventos que tenemos en el día de hoy,  " + GetTodaysName + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("buenas noches") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Buenas Noches, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Buenas Noches, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetTodaysName, "Estos son los eventos que tenemos en el día de hoy,  " + GetTodaysName + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf (e.Message.Content.ToLower().Contains("feliz noche") Or e.Message.Content.ToLower().Contains("felíz noche")) And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Felíz Noche, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Felíz Noche, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetTodaysName, "Estos son los eventos que tenemos en el día de hoy,  " + GetTodaysName + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("buenas") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Buenas, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Buenas, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetTodaysName, "Estos son los eventos que tenemos en el día de hoy,  " + GetTodaysName + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
