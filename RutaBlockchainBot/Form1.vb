@@ -22,6 +22,7 @@ Public Class Form1
     Private CoinValueChannel As String = String.Empty
     Private BotControlChannel As String = String.Empty
     Private Smiley As String = String.Empty
+    Private TwentyFourHour As Boolean = False
 
     Private Async Sub Button1_Click(sender As Object, e As System.EventArgs) Handles Button1.Click
         Button1.Text = "Running"
@@ -326,7 +327,7 @@ Public Class Form1
             DayName = "martes"
         ElseIf Day.ToLower = "wednesday" Then
             DayName = "miércoles"
-        ElseIf Day.ToLower = "thursday" Then 
+        ElseIf Day.ToLower = "thursday" Then
             DayName = "jueves"
         ElseIf Day.ToLower = "friday" Then
             DayName = "viernes"
@@ -923,6 +924,9 @@ Public Class Form1
             ElseIf currentline.Contains("smiley") Then
                 Dim GetSmiley As String() = currentline.Split("=")
                 Smiley = GetSmiley(1)
+            ElseIf currentline.Contains("24hour") Then
+                Dim Get24Hour As String() = currentline.Split("=")
+                If Get24Hour(1) = "1" Or Get24Hour(1).ToLower() = "true" Then TwentyFourHour = True Else TwentyFourHour = False
             ElseIf currentline.Contains("mysql-server") Then
                 Dim GetServer As String() = currentline.Split("=")
                 MySQLServer = GetServer(1)
