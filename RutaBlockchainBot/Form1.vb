@@ -686,6 +686,9 @@ Public Class Form1
                         Next
                         Dim ArticleResult As String = GetWikipediaArticle(WikiArticle)
                         If String.IsNullOrEmpty(ArticleResult) = False Then
+                            If ArticleResult.Length > 1500 Then
+                                ArticleResult = ArticleResult.Substring(0, ArticleResult.Length - 500) + "..."
+                            End If
                             Await e.Channel.SendMessageAsync(ArticleResult & vbNewLine & vbNewLine & "Más del articulo en: " & "https://es.wikipedia.org/wiki/" & WikiArticle.Replace(" ", "_").Remove(WikiArticle.Count - 1, 1))
                         Else
                             Await e.Channel.SendMessageAsync("No se ha encontrado un artículo con esos términos. Verifica que los términos estén bien escritos (Mayúsculas, acentos...) ")
