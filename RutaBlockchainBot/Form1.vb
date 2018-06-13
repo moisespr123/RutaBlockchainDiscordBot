@@ -256,24 +256,32 @@ Public Class Form1
         Connection.Close()
     End Sub
     Private Function TimeToMySQLFormat(time As String) As String
-        Dim timeSplit As String() = time.Split(":")
-        Dim hour As Integer = Convert.ToInt16(timeSplit(0))
-        If timeSplit(1).ToLower.Contains("pm") And hour <= 12 Then
-            timeSplit(0) = (hour + 12).ToString
-        End If
-        time = timeSplit(0) + ":" + timeSplit(1)
-        timeSplit = time.Split(" ")
-        Return timeSplit(0)
+        If Not TwentyFourHour then
+            Dim timeSplit As String() = time.Split(":")
+            Dim hour As Integer = Convert.ToInt16(timeSplit(0))
+            If timeSplit(1).ToLower.Contains("pm") And hour <= 12 Then
+                timeSplit(0) = (hour + 12).ToString
+            End If
+            time = timeSplit(0) + ":" + timeSplit(1)
+            timeSplit = time.Split(" ")
+            Return timeSplit(0)
+        Else
+            Return time
+        End if
     End Function
     Private Function TimeFromMySQLFormat(time As String) As String
         Dim timeSplit As String() = time.Split(":")
-        Dim checkHour As Integer = Convert.ToInt16(timeSplit(0))
-        If checkHour > 12 Then
-            checkHour -= 12
-            time = checkHour.ToString + ":" + timeSplit(1) + " PM"
+        If Not TwentyFourHour Then
+             Dim checkHour As Integer = Convert.ToInt16(timeSplit(0))
+            If checkHour > 12 Then
+                checkHour -= 12
+                time = checkHour.ToString + ":" + timeSplit(1) + " PM"
+            Else
+                time = checkHour.ToString + ":" + timeSplit(1) + " AM"
+            End If
         Else
-            time = checkHour.ToString + ":" + timeSplit(1) + " AM"
-        End If
+            time = timeSplit(0) + ":" + timeSplit(1) 
+        End IF
         Return time
     End Function
     Private Function ReturnIntFromDayString(day As String) As String
