@@ -757,7 +757,7 @@ Public Class Form1
                                     Next
                                     Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), TimeStringsToUse)
                                     If Not TimeslotInUse Then
-                                        AddEvent(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4), ActivityName)
+                                        AddEvent(ServerName, SplitWords(2), TimeStringsToUse, ActivityName)
                                         Await e.Channel.SendMessageAsync("El evento ha sido añadido :slight_smile:")
                                     Else
                                         Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), TimeStringsToUse) + Environment.NewLine +
