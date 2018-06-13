@@ -150,19 +150,22 @@ Public Class Form1
         End If
         Return eventOrEvents
     End Function
-    Private Function GetSingleDayActivity(ServerName As String, day As String) As String
+    Private Function GetSingleDayActivity(ServerName As String, day As String, Optional CustomMessage As String = "") As String
         ServerName = ServerName.Replace(" ", "").ToLower
         Dim dayConvertetToInt = ReturnIntFromDayString(day)
-        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername='" + ServerName + "' AND day=" + dayConvertetToInt + " ORDER BY day;"
+        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername='" + ServerName + "' AND day=" + dayConvertetToInt + " ORDER BY time;"
         Dim hasRows As Boolean = False
         Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
         Dim Command As New MySqlCommand(SQLQuery, Connection)
         Connection.Open()
         Dim reader As MySqlDataReader = Command.ExecuteReader
         Dim events As String = "Eventos del " + day + ":" + vbCrLf
+        If Not String.IsNullOrEmpty(CustomMessage) Then
+            events = CustomMessage + vbCrLf
+        End If
         If reader.HasRows Then
             While reader.Read
-                 Dim dateConverted As String = TimeFromMySQLFormat(reader.GetTimeSpan("time").ToString)
+                Dim dateConverted As String = TimeFromMySQLFormat(reader.GetTimeSpan("time").ToString)
                 events += dateConverted + " - " + reader("activityname") + vbCrLf
             End While
         Else
@@ -311,6 +314,26 @@ Public Class Form1
         End If
         Return dayString
     End Function
+    Private Function GetTodaysName() As String
+        Dim Day As String = Date.Today.ToString("dddd")
+        Dim DayName As String = ""
+        If Day.ToLower = "monday" Then
+            DayName = "lunes"
+        ElseIf Day.ToLower = "tuesday" Then
+            DayName = "martes"
+        ElseIf Day.ToLower = "wednesday" Then
+            DayName = "miércoles"
+        ElseIf Day.ToLower = "thursday" Then
+            DayName = "jueves"
+        ElseIf Day.ToLower = "friday" Then
+            DayName = "viernes"
+        ElseIf Day.ToLower = "saturday" Then
+            DayName = "sábado"
+        ElseIf Day.ToLower = "sunday" Then
+            DayName = "domingo"
+        End If
+        Return DayName
+    End Function
     Private Async Function OnMessage(ByVal e As MessageCreateEventArgs) As Task Handles DiscordClient.MessageCreated
         Dim User As String = FindUserInFile(e.Message.Author.Username)
         User = User.ToLower
@@ -379,7 +402,8 @@ Public Class Form1
                     Await e.Channel.SendMessageAsync(":kissing_heart: :kissing_heart: :kissing_heart: :kissing_heart: :kissing_heart: :kissing_heart: :kissing_heart:")
                 ElseIf e.Message.Content.ToLower().Contains("hola") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Hola, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Hola, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetTodaysName, "Estos son los eventos que tenemos en el día de hoy,  " + GetTodaysName + ":"))
+
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
@@ -735,7 +759,7 @@ Public Class Form1
                                     Next
                                     Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4))
                                     If Not TimeslotInUse Then
-                                        AddEvent(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4), SplitWords(5))
+                                        AddEvent(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4), ActivityName)
                                         Await e.Channel.SendMessageAsync("El evento ha sido añadido :slight_smile:")
                                     Else
                                         Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
@@ -757,9 +781,6 @@ Public Class Form1
                                     End If
                                 ElseIf SplitWords(1) = "borrar" Or SplitWords(1) = "remover" Or SplitWords(1) = "eliminar" Then
                                     Dim ActivityName As String = String.Empty
-                                    For currentword = 5 To SplitWords.Count - 1
-                                        ActivityName += SplitWords(currentword) + " "
-                                    Next
                                     Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4))
                                     If TimeslotInUse Then
                                         DeleteEvent(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4))
