@@ -757,9 +757,9 @@ Public Class Form1
                         Try
                             If SplitWords.Count > 1 Then
                                 Dim TimeStringsToUse As String = SplitWords(3)
-                                Dim StartWord As Integer = 5
+                                Dim StartWord As Integer = 4
                                 If Not TwentyFourHour Then
-                                    StartWord = 4
+                                    StartWord = 5
                                     TimeStringsToUse = SplitWords(3) + " " + SplitWords(4)
                                 End If
                                 If SplitWords(1) = "añadir" Then
