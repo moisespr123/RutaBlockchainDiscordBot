@@ -736,41 +736,46 @@ Public Class Form1
                         Dim ErrorOccurred As Boolean = False
                         Try
                             If SplitWords.Count > 1 Then
+                                Dim TimeStringsToUse As String = SplitWords(3)
+                                Dim StartWord As Integer = 5
+                                If Not TwentyFourHour Then
+                                    StartWord = 4
+                                    TimeStringsToUse = SplitWords(3) + " " + SplitWords(4)
+                                End If
                                 If SplitWords(1) = "añadir" Then
                                     Dim ActivityName As String = String.Empty
-                                    For currentword = 5 To SplitWords.Count - 1
+                                    For currentword = StartWord To SplitWords.Count - 1
                                         ActivityName += SplitWords(currentword) + " "
                                     Next
-                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), TimeStringsToUse)
                                     If Not TimeslotInUse Then
                                         AddEvent(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4), ActivityName)
                                         Await e.Channel.SendMessageAsync("El evento ha sido añadido :slight_smile:")
                                     Else
-                                        Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
+                                        Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), TimeStringsToUse) + Environment.NewLine +
                                                                          "Para cambiar o actualizar este evento, utilice el comando !actividad actualizar (día) (hora) (mensaje)" + Environment.NewLine +
                                                                          "Para borrar este evento, utilice el comando !actividad borrar (día) (hora)")
                                     End If
                                 ElseIf SplitWords(1) = "actualizar" Then
                                     Dim ActivityName As String = String.Empty
-                                    For currentword = 5 To SplitWords.Count - 1
+                                    For currentword = StartWord To SplitWords.Count - 1
                                         ActivityName += SplitWords(currentword) + " "
                                     Next
-                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), TimeStringsToUse)
                                     If TimeslotInUse Then
-                                        UpdateEvent(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4), ActivityName)
+                                        UpdateEvent(ServerName, SplitWords(2), TimeStringsToUse, ActivityName)
                                         Await e.Channel.SendMessageAsync("El evento ha sido actualizado :slight_smile:")
                                     Else
                                         Await e.Channel.SendMessageAsync("No existe evento para actualizar en ese día a esta hora." + Environment.NewLine +
                                                                          "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
                                     End If
                                 ElseIf SplitWords(1) = "borrar" Or SplitWords(1) = "remover" Or SplitWords(1) = "eliminar" Then
-                                    Dim ActivityName As String = String.Empty
-                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), TimeStringsToUse)
                                     If TimeslotInUse Then
-                                        DeleteEvent(ServerName, SplitWords(2), SplitWords(3) + " " + SplitWords(4))
+                                        DeleteEvent(ServerName, SplitWords(2), TimeStringsToUse)
                                         Await e.Channel.SendMessageAsync("El evento ha sido sido borrado :slight_smile:")
                                     Else
-                                        Await e.Channel.SendMessageAsync("No existe evento para borrar en ese día a esta hora: " + GetActivity(SplitWords(2), SplitWords(3) + " " + SplitWords(4)) + Environment.NewLine +
+                                        Await e.Channel.SendMessageAsync("No existe evento para borrar en ese día a esta hora." + Environment.NewLine +
                                                                          "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
                                     End If
                                 End If
