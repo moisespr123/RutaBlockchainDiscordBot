@@ -256,8 +256,9 @@ Public Class Form1
     End Sub
     Private Function TimeToMySQLFormat(time As String) As String
         Dim timeSplit As String() = time.Split(":")
-        If timeSplit(1).ToLower.Contains("pm") Then
-            timeSplit(0) = (Convert.ToInt16(timeSplit(0)) + 12).ToString
+        Dim hour As Integer  = Convert.ToInt16(timeSplit(0))
+        If timeSplit(1).ToLower.Contains("pm") and hour <= 12 Then
+            timeSplit(0) = (hour + 12).ToString
         End If
         time = timeSplit(0) + ":" + timeSplit(1)
         timeSplit = time.Split(" ")
@@ -383,7 +384,8 @@ Public Class Form1
                                        "!perfil (usuario) - Dice el perfil tuyo o de un usuario." & vbCrLf &
                                        "!clases - muestra las clases que se realizan en el grupo" & vbCrLf &
                                        vbCrLf & "También, puedes escribir algunas cosas naturalmente, como qué hora es y qué día es hoy." & vbCrLf & vbCrLf &
-                                       MentionMoises.Mention & " es un Witness. Si te gusta este bot y sus proyectos, considera votándolo como Witness " + Smiley)
+                                       MentionMoises.Mention & " es un Witness. Si te gusta este bot y sus proyectos, considera votarlo como Witness " + Smiley + vbCrLf + 
+                                       "Vótalo usando el siguiente enlace: https://v2.steemconnect.com/sign/account-witness-vote?witness=moisesmcardona&approve=1")
                     Threading.Thread.Sleep(500)
                     Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", los comandos se han enviado por mensaje privado")
                 ElseIf e.Message.Content.ToLower().Contains("!clase") Then
