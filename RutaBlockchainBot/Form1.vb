@@ -79,18 +79,8 @@ Public Class Form1
         Next
         Return UserToUse
     End Function
-    Private Async Function CheckUserInDiscord(user As String) As Task(Of Boolean)
-        Dim UserFound As Boolean = False
-        Try
-            Await DiscordClient.GetUserAsync(user)
-            UserFound = True
-        Catch ex As Exception
-            UserFound = False
-        End Try
-        Return UserFound
-    End Function
-    Private Async Function GetDiscordUser(user As String) As Task(Of DiscordUser)
-        Dim UserToUse As DiscordUser = Await DiscordClient.GetUserAsync(user)
+    Private Async Function GetDiscordUser(user As DiscordUser) As Task(Of DiscordUser)
+        Dim UserToUse As DiscordUser = Await DiscordClient.GetUserAsync(user.id)
         Return UserToUse
     End Function
 
@@ -357,7 +347,7 @@ Public Class Form1
                     Dim SplitWords As String() = e.Message.Content.Split(" ")
                     If SplitWords.Count >= 2 Then
                         Try
-                            UserInDiscord = Await GetDiscordUser(FindUser(SplitWords))
+                            UserInDiscord = Await GetDiscordUser(e.MentionedUsers(0))
                             User = FindUserInFile(UserInDiscord.Username.ToLower)
                             IsUserInDiscord = True
                         Catch
