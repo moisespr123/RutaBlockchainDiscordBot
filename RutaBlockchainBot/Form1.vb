@@ -508,7 +508,7 @@ Public Class Form1
                     If IsUserInDiscord Then
                         Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", sigues a " & FollowingNumber & " perfiles " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & " sigue a " & FollowingNumber & " perfiles :smiley:  ")
+                        Await e.Channel.SendMessageAsync("@" & User & " sigue a " & FollowingNumber & " perfiles " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!ubicación") Or e.Message.Content.ToLower.Contains("!ubicacion") Then
                     Dim location As String = GetResultFromSteemPlaceAPI(User, "location")
@@ -555,30 +555,30 @@ Public Class Form1
                     End If
                     Dim FullDate As String = Convert.ToInt32(DateAndTime.ToString("dd")).ToString + " de " + MonthName + " de " + DateAndTime.ToString("yyyy")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tu cuenta fue creada el " & FullDate & " a las " & DateAndTime.ToString("hh:mm:ss tt") & " :smiley: ")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tu cuenta fue creada el " & FullDate & " a las " & DateAndTime.ToString("hh:mm:ss tt") & " " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("La cuenta de @" & User & " fue creada el " & FullDate & " a las " & DateAndTime.ToString("hh:mm:ss tt") & " :smiley: ")
+                        Await e.Channel.SendMessageAsync("La cuenta de @" & User & " fue creada el " & FullDate & " a las " & DateAndTime.ToString("hh:mm:ss tt") & " " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!sbd") Then
                     Dim Balance As String = GetResultFromSteemPlaceAPI(User, "sbd")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & Balance & " :smiley: ")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & Balance & " " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & Balance & " :smiley: ")
+                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & Balance & " " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!steem") Then
                     Dim Balance As String = GetResultFromSteemPlaceAPI(User, "steem")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & Balance & " :smiley: ")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & Balance & " " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & Balance & " :smiley: ")
+                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & Balance & " " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!vp") Then
                     Dim VP As Double = GetResultFromSteemPlaceAPI(User, "vp")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tu poder de voto es " & VP & "% :slight_smile: ")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tu poder de voto es " & VP & "% " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & ", tu poder de voto es " & VP & "% :slight_smile: ")
+                        Await e.Channel.SendMessageAsync("@" & User & ", tu poder de voto es " & VP & "% " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!witness") Then
                     Dim WitnessVotes As String = GetResultFromSteemPlaceAPI(User, "witness")
@@ -586,9 +586,9 @@ Public Class Form1
                     If String.IsNullOrEmpty(WitnessVotes) = False Then
                         If WitnessVotes.Contains("moisesmcardona") Then
                             If IsUserInDiscord = True Then
-                                Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", has votado a " & MentionMoises.Mention & " como Witness :smiley: ")
+                                Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", has votado a " & MentionMoises.Mention & " como Witness " + Smiley)
                             Else
-                                Await e.Channel.SendMessageAsync(User & " ha votado a " & MentionMoises.Mention & " como Witness :smiley: ")
+                                Await e.Channel.SendMessageAsync(User & " ha votado a " & MentionMoises.Mention & " como Witness " + Smiley)
                             End If
                         Else
                             If IsUserInDiscord = True Then
@@ -778,7 +778,7 @@ Public Class Form1
                                     Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), TimeStringsToUse)
                                     If Not TimeslotInUse Then
                                         AddEvent(ServerName, SplitWords(2), TimeStringsToUse, ActivityName)
-                                        Await e.Channel.SendMessageAsync("El evento ha sido añadido :slight_smile:")
+                                        Await e.Channel.SendMessageAsync("El evento ha sido añadido " + Smiley)
                                     Else
                                         Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), TimeStringsToUse) + Environment.NewLine +
                                                                          "Para cambiar o actualizar este evento, utilice el comando !actividad actualizar (día) (hora) (mensaje)" + Environment.NewLine +
@@ -792,7 +792,7 @@ Public Class Form1
                                     Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), TimeStringsToUse)
                                     If TimeslotInUse Then
                                         UpdateEvent(ServerName, SplitWords(2), TimeStringsToUse, ActivityName)
-                                        Await e.Channel.SendMessageAsync("El evento ha sido actualizado :slight_smile:")
+                                        Await e.Channel.SendMessageAsync("El evento ha sido actualizado " + Smiley)
                                     Else
                                         Await e.Channel.SendMessageAsync("No existe evento para actualizar en ese día a esta hora." + Environment.NewLine +
                                                                          "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
@@ -801,7 +801,7 @@ Public Class Form1
                                     Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), TimeStringsToUse)
                                     If TimeslotInUse Then
                                         DeleteEvent(ServerName, SplitWords(2), TimeStringsToUse)
-                                        Await e.Channel.SendMessageAsync("El evento ha sido sido borrado :slight_smile:")
+                                        Await e.Channel.SendMessageAsync("El evento ha sido sido borrado " + Smiley)
                                     Else
                                         Await e.Channel.SendMessageAsync("No existe evento para borrar en ese día a esta hora." + Environment.NewLine +
                                                                          "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
