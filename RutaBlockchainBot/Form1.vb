@@ -735,7 +735,7 @@ Public Class Form1
                             Next
                             Await e.Channel.SendMessageAsync(Reply)
                         Else
-                            Reply = GetOrCalculatePrice("steem", "USD")
+                            Reply = GetOrCalculatePrice("steem")
                             Await e.Channel.SendMessageAsync(Reply)
                         End If
                     ElseIf e.Message.Content.ToLower().Contains("!calcular") Then
@@ -751,7 +751,7 @@ Public Class Form1
                             Next
                             Await e.Channel.SendMessageAsync(Reply)
                         Else
-                            Reply = GetOrCalculatePrice("steem", "USD")
+                            Reply = GetOrCalculatePrice("steem")
                             Await e.Channel.SendMessageAsync(Reply)
                         End If
                     End If
