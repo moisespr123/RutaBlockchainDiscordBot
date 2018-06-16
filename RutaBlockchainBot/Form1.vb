@@ -80,7 +80,7 @@ Public Class Form1
         Return UserToUse
     End Function
     Private Async Function GetDiscordUser(user As DiscordUser) As Task(Of DiscordUser)
-        Dim UserToUse As DiscordUser = Await DiscordClient.GetUserAsync(user.id)
+        Dim UserToUse As DiscordUser = Await DiscordClient.GetUserAsync(user.Id)
         Return UserToUse
     End Function
 
@@ -246,7 +246,7 @@ Public Class Form1
         Connection.Close()
     End Sub
     Private Function TimeToMySQLFormat(time As String) As String
-        If Not TwentyFourHour then
+        If Not TwentyFourHour Then
             Dim timeSplit As String() = time.Split(":")
             Dim hour As Integer = Convert.ToInt16(timeSplit(0))
             If timeSplit(1).ToLower.Contains("pm") And hour <= 12 Then
@@ -257,12 +257,12 @@ Public Class Form1
             Return timeSplit(0)
         Else
             Return time
-        End if
+        End If
     End Function
     Private Function TimeFromMySQLFormat(time As String) As String
         Dim timeSplit As String() = time.Split(":")
         If Not TwentyFourHour Then
-             Dim checkHour As Integer = Convert.ToInt16(timeSplit(0))
+            Dim checkHour As Integer = Convert.ToInt16(timeSplit(0))
             If checkHour > 12 Then
                 checkHour -= 12
                 time = checkHour.ToString + ":" + timeSplit(1) + " PM"
@@ -270,8 +270,8 @@ Public Class Form1
                 time = checkHour.ToString + ":" + timeSplit(1) + " AM"
             End If
         Else
-            time = timeSplit(0) + ":" + timeSplit(1) 
-        End IF
+            time = timeSplit(0) + ":" + timeSplit(1)
+        End If
         Return time
     End Function
     Private Function ReturnIntFromDayString(day As String) As String
@@ -402,6 +402,9 @@ Public Class Form1
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
+                ElseIf e.Message.Content.ToLower().Contains("!ban") Then
+                    Await e.Channel.SendMessageAsync(UserInDiscord.Mention & " ha sido baneado " + Smiley)
+                    LastUserGreeted = e.Message.Author.Username
                 ElseIf e.Message.Content.ToLower().Contains("saludos") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
                         Await e.Channel.SendMessageAsync("Saludos, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy, " + GetDayName() + ":"))
@@ -474,9 +477,22 @@ Public Class Form1
                 ElseIf e.Message.Content.ToLower().Contains("buena noticia") Or e.Message.Content.ToLower().Contains("buenas noticias") Then
                     Await e.Channel.SendMessageAsync("¡Enhorabuena!")
                 ElseIf e.Message.Content.ToLower().Contains("!actividad") Then
-                    Dim SplitWords As String() = e.Message.Content.Split(" ")
-                    If SplitWords.Count > 1 Then
-                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, SplitWords(1)))
+                    If e.Message.Content.ToLower.Contains("hoy") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, GetDayName()))
+                    ElseIf e.Message.Content.ToLower.Contains("lunes") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "lunes"))
+                    ElseIf e.Message.Content.ToLower.Contains("martes") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "martes"))
+                    ElseIf e.Message.Content.ToLower.Contains("miercoles") Or e.Message.Content.ToLower.Contains("miércoles") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "miercoles"))
+                    ElseIf e.Message.Content.ToLower.Contains("jueves") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "jueves"))
+                    ElseIf e.Message.Content.ToLower.Contains("viernes") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "viernes"))
+                    ElseIf e.Message.Content.ToLower.Contains("sabado") Or e.Message.Content.ToLower.Contains("sábado") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "sabado"))
+                    ElseIf e.Message.Content.ToLower.Contains("domingo") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "domingo"))
                     Else
                         Await e.Channel.SendMessageAsync(GetActivity(ServerName))
                     End If
@@ -581,6 +597,8 @@ Public Class Form1
                                 Await e.Channel.SendMessageAsync(User & " no ha votado a " & MentionMoises.Mention & " como Witness :cry:")
                             End If
                         End If
+                    Else
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", parece que no has votado a nadie como Witness  :cry:" + vbCrLf + "Considera votar a " & MentionMoises.Mention & " como Witness usando el siguiente enlace: https://v2.steemconnect.com/sign/account-witness-vote?witness=moisesmcardona&approve=1")
                     End If
                 ElseIf e.Message.Content.ToLower.Contains("!fc") Then
                     Dim SplitWords As String() = e.Message.Content.Split(" ")
