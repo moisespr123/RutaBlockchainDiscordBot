@@ -814,6 +814,8 @@ Public Class Form1
                             ErrorOccurred = True
                         End Try
                         If ErrorOccurred Then Await e.Channel.SendMessageAsync("Ha ocurrido un error. Asegúrese que el formato del mensaje es por ejemplo:" & vbCrLf & "!actividad añadir lunes 9:00 PM una actividad")
+                    Else
+                        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(MainChannel), e.Message.Content)
                     End If
                 End If
             End If
