@@ -23,6 +23,7 @@ Public Class Form1
     Private BotControlChannel As String = String.Empty
     Private Smiley As String = String.Empty
     Private TwentyFourHour As Boolean = False
+    Private Language As String = "es"
 
     Private Async Sub Button1_Click(sender As Object, e As System.EventArgs) Handles Button1.Click
         Button1.Text = "Running"
@@ -150,7 +151,12 @@ Public Class Form1
         Dim Command As New MySqlCommand(SQLQuery, Connection)
         Connection.Open()
         Dim reader As MySqlDataReader = Command.ExecuteReader
-        Dim events As String = "Eventos del " + day + ":" + vbCrLf
+        Dim events As String = String.Empty
+        If Language = "es" Then
+            events = "Eventos del " + day + ":" + vbCrLf
+        Else
+            events = "Events for " + day + ":" + vbCrLf
+        End If
         If Not String.IsNullOrEmpty(CustomMessage) Then
             events = CustomMessage + vbCrLf
         End If
@@ -160,14 +166,23 @@ Public Class Form1
                 events += dateConverted + " - " + reader("activityname") + vbCrLf
             End While
         Else
-            events = "No hay eventos para este día"
+            If Language = "es" Then
+                events = "No hay eventos para este día"
+            Else
+                events = "There's no events for this day"
+            End If
         End If
         Connection.Close()
         Return events
     End Function
     Private Function GetAllAcivities(ServerName As String) As String
         ServerName = ServerName.Replace(" ", "").ToLower
-        Dim eventsHeader As String = "Lista de eventos:" + vbCrLf
+        Dim eventsHeader As String = String.Empty
+        If Language = "es" Then
+            eventsHeader = "Lista de eventos:" + vbCrLf
+        Else
+            eventsHeader = "Events List" + vbCrLf
+        End If
         Dim events As String = String.Empty
         For day As Integer = 1 To 7
             Dim SQLQuery As String = "SELECT time, activityname FROM activities WHERE servername='" + ServerName + "' AND day = " + day.ToString + " ORDER BY day, time;"
@@ -189,7 +204,11 @@ Public Class Form1
         If Not String.IsNullOrEmpty(events) Then
             events = eventsHeader + events
         Else
-            events = "No hay eventos actualmente en la semana"
+            If Language = "es" Then
+                events = "No hay eventos actualmente en la semana"
+            Else
+                events = "There's no events in the week"
+            End If
         End If
         Return events
     End Function
@@ -207,7 +226,11 @@ Public Class Form1
                 events = +reader("activityname") + vbCrLf
             End While
         Else
-            events = "No hay eventos para este día"
+            If Language = "es" Then
+                events = "No hay eventos para este día"
+            Else
+                events = "There's no events for this day"
+            End If
         End If
         Connection.Close()
         Return events
@@ -277,19 +300,19 @@ Public Class Form1
     Private Function ReturnIntFromDayString(day As String) As String
         day = day.ToLower()
         Dim dayInt As Integer = 0
-        If day = "domingo" Then
+        If day = "domingo" Or day = "sunday" Then
             dayInt = 1
-        ElseIf day = "lunes" Then
+        ElseIf day = "lunes" Or day = "monday" Then
             dayInt = 2
-        ElseIf day = "martes" Then
+        ElseIf day = "martes" Or day.ToLower() = "tuesday" Then
             dayInt = 3
-        ElseIf day = "miercoles" Or day = "miércoles" Then
+        ElseIf day = "miercoles" Or day = "miércoles" Or day = "wednesday" Then
             dayInt = 4
-        ElseIf day = "jueves" Then
+        ElseIf day = "jueves" Or day = "thursday" Then
             dayInt = 5
-        ElseIf day = "viernes" Then
+        ElseIf day = "viernes" Or day = "friday" Then
             dayInt = 6
-        ElseIf day = "sabado" Or day = "sábado" Then
+        ElseIf day = "sabado" Or day = "sábado" Or day = "saturday" Then
             dayInt = 7
         End If
         Return dayInt.ToString
@@ -298,19 +321,19 @@ Public Class Form1
     Private Function ReturnStringFromDayInt(day As Integer) As String
         Dim dayString As String = String.Empty
         If day = 1 Then
-            dayString = "Domingo"
+            If Language = "es" Then dayString = "Domingo" Else dayString = "Sunday"
         ElseIf day = 2 Then
-            dayString = "Lunes"
+            If Language = "es" Then dayString = "Lunes" Else dayString = "Monday"
         ElseIf day = 3 Then
-            dayString = "Martes"
+            If Language = "es" Then dayString = "Martes" Else dayString = "Tuesday"
         ElseIf day = 4 Then
-            dayString = "Miércoles"
+            If Language = "es" Then dayString = "Miércoles" Else dayString = "Wednesday"
         ElseIf day = 5 Then
-            dayString = "Jueves"
+            If Language = "es" Then dayString = "Jueves" Else dayString = "Thursday"
         ElseIf day = 6 Then
-            dayString = "Viernes"
+            If Language = "es" Then dayString = "Viernes" Else dayString = "Friday"
         ElseIf day = 7 Then
-            dayString = "Sábado"
+            If Language = "es" Then dayString = "Sábado" Else dayString = "Saturday"
         End If
         Return dayString
     End Function
@@ -319,20 +342,24 @@ Public Class Form1
             Day = Date.Today.ToString("dddd")
         End If
         Dim DayName As String = ""
-        If Day.ToLower = "monday" Then
-            DayName = "lunes"
-        ElseIf Day.ToLower = "tuesday" Then
-            DayName = "martes"
-        ElseIf Day.ToLower = "wednesday" Then
-            DayName = "miércoles"
-        ElseIf Day.ToLower = "thursday" Then
-            DayName = "jueves"
-        ElseIf Day.ToLower = "friday" Then
-            DayName = "viernes"
-        ElseIf Day.ToLower = "saturday" Then
-            DayName = "sábado"
-        ElseIf Day.ToLower = "sunday" Then
-            DayName = "domingo"
+        If Language = "es" Then
+            If Day.ToLower = "monday" Then
+                DayName = "lunes"
+            ElseIf Day.ToLower = "tuesday" Then
+                DayName = "martes"
+            ElseIf Day.ToLower = "wednesday" Then
+                DayName = "miércoles"
+            ElseIf Day.ToLower = "thursday" Then
+                DayName = "jueves"
+            ElseIf Day.ToLower = "friday" Then
+                DayName = "viernes"
+            ElseIf Day.ToLower = "saturday" Then
+                DayName = "sábado"
+            ElseIf Day.ToLower = "sunday" Then
+                DayName = "domingo"
+            End If
+        Else
+            DayName = Day
         End If
         Return DayName
     End Function
