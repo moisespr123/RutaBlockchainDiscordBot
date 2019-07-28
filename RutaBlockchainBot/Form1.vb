@@ -4,19 +4,35 @@ Imports System.Text
 Imports DSharpPlus
 Imports DSharpPlus.Entities
 Imports DSharpPlus.EventArgs
+Imports MySql.Data.MySqlClient
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 
 Public Class Form1
     Private WithEvents DiscordClient As DiscordClient
+    Private MySQLString As String = String.Empty
+    Private Token As String = String.Empty
+    Private LastUserGreeted As String = My.Settings.LastUserGreeted
+    Private LastUserGoodbye As String = My.Settings.LastUserGoodbye
+    Private ServerName As String = String.Empty
+    Private BotId As String = String.Empty
+    Private MainChannel As String = String.Empty
+    Private WelcomeEnabled As Boolean = False
+    Private WelcomeChannel As String = String.Empty
+    Private CoinValueChannel As String = String.Empty
+    Private BotControlChannel As String = String.Empty
+    Private Smiley As String = String.Empty
+    Private TwentyFourHour As Boolean = False
+    Private Language As String = "es"
+
     Private Async Sub Button1_Click(sender As Object, e As System.EventArgs) Handles Button1.Click
         Button1.Text = "Running"
-        Await StartAsync()
+        Await StartAsync(Token)
     End Sub
-    Public Async Function StartAsync() As Task
+    Public Async Function StartAsync(token As String) As Task
         Dim dcfg As New DiscordConfiguration
         With dcfg
-            .Token = My.Computer.FileSystem.ReadAllText("token.txt")
+            .Token = token
             .TokenType = TokenType.Bot
             .LogLevel = LogLevel.Debug
             .AutoReconnect = True
@@ -25,10 +41,13 @@ Public Class Form1
         Await Me.DiscordClient.ConnectAsync()
         Await Task.Delay(-1)
     End Function
-    Dim LastUserGreeted As String = My.Settings.LastUserGreeted
-    Dim LastUserGoodbye As String = My.Settings.LastUserGoodbye
+
     Private Async Function OnGuildMemberAdd(ByVal e As GuildMemberAddEventArgs) As Task Handles DiscordClient.GuildMemberAdded
-        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(402802330728267776), "Démosle una cordiál bienvenida a " & e.Member.Mention & " al chat de Ruta Blockchain :smiley:")
+        If WelcomeEnabled Then
+            Dim ChannelToUse As ULong = Nothing
+            If String.IsNullOrEmpty(WelcomeChannel) Then WelcomeChannel = MainChannel Else WelcomeChannel = WelcomeChannel
+            Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(ChannelToUse), "Démosle una cordial bienvenida a " & e.Member.Mention & " al chat de " + ServerName + " " + Smiley)
+        End If
     End Function
     Private Function FindUserInFile(user As String)
         Dim userInFile As String = String.Empty
@@ -53,7 +72,7 @@ Public Class Form1
         For Each word In message
             If word.Contains("@") Then
                 If word.Contains("<") And word.Contains(">") Then
-                    UserToUse = word.Remove(word.Count - 1, 1).Remove(0, 2)
+                    UserToUse = word.Remove(word.Count - 1, 1).Remove(0, 3)
                 Else
                     UserToUse = word.Remove(0, 1)
                 End If
@@ -61,18 +80,8 @@ Public Class Form1
         Next
         Return UserToUse
     End Function
-    Private Async Function CheckUserInDiscord(user As String) As Task(Of Boolean)
-        Dim UserFound As Boolean = False
-        Try
-            Await DiscordClient.GetUserAsync(user)
-            UserFound = True
-        Catch ex As Exception
-            UserFound = False
-        End Try
-        Return UserFound
-    End Function
-    Private Async Function GetDiscordUser(user As String) As Task(Of DiscordUser)
-        Dim UserToUse As DiscordUser = Await DiscordClient.GetUserAsync(user)
+    Private Async Function GetDiscordUser(user As DiscordUser) As Task(Of DiscordUser)
+        Dim UserToUse As DiscordUser = Await DiscordClient.GetUserAsync(user.Id)
         Return UserToUse
     End Function
 
@@ -97,25 +106,275 @@ Public Class Form1
         ElseIf what = "vp" Then
             URL = "https://api.steem.place/getVP/?a="
         End If
-        Dim myWebRequest As System.Net.WebRequest = System.Net.WebRequest.Create(URL & user)
-        Dim myWebResponse As System.Net.WebResponse = myWebRequest.GetResponse()
+        Dim myWebRequest As WebRequest = WebRequest.Create(URL & user)
+        Dim myWebResponse As WebResponse = myWebRequest.GetResponse()
         Dim ReceiveStream As Stream = myWebResponse.GetResponseStream()
         Dim encode As Encoding = System.Text.Encoding.GetEncoding("utf-8")
         Dim readStream As New StreamReader(ReceiveStream, encode)
         Return readStream.ReadLine
+    End Function
+    Private Function CheckIfActivityExists(ServerName As String, day As String, time As String) As Boolean
+        day = ReturnIntFromDayString(day)
+        time = TimeToMySQLFormat(time)
+        Dim hasRows As Boolean = False
+        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE day=" + day + " AND time='" + time & "';"
+        Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+        Dim Command As New MySqlCommand(SQLQuery, Connection)
+        Connection.Open()
+        Dim reader As MySqlDataReader = Command.ExecuteReader
+        If reader.HasRows Then hasRows = True Else hasRows = False
+        Connection.Close()
+        Return hasRows
+    End Function
+    Private Function GetActivity(ServerName As String, Optional day As String = "", Optional time As String = "") As String
+        ServerName = ServerName.Replace(" ", "").ToLower
+        Dim eventOrEvents As String = String.Empty
+        If Not String.IsNullOrEmpty(day) Then
+            If String.IsNullOrEmpty(time) Then
+                eventOrEvents = GetSingleDayActivity(ServerName, day)
+            Else
+                day = ReturnIntFromDayString(day)
+                time = TimeToMySQLFormat(time)
+                eventOrEvents = GetSpecificActivity(ServerName, day, time)
+            End If
+        Else
+            eventOrEvents = GetAllAcivities(ServerName)
+        End If
+        Return eventOrEvents
+    End Function
+    Private Function GetSingleDayActivity(ServerName As String, day As String, Optional CustomMessage As String = "") As String
+        ServerName = ServerName.Replace(" ", "").ToLower
+        Dim dayConvertetToInt = ReturnIntFromDayString(day)
+        Dim SQLQuery As String = "SELECT day, time, activityname FROM activities WHERE servername='" + ServerName + "' AND day=" + dayConvertetToInt + " ORDER BY time;"
+        Dim hasRows As Boolean = False
+        Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+        Dim Command As New MySqlCommand(SQLQuery, Connection)
+        Connection.Open()
+        Dim reader As MySqlDataReader = Command.ExecuteReader
+        Dim events As String = String.Empty
+        If Language = "es" Then
+            events = "Eventos del " + day + ":" + vbCrLf
+        Else
+            events = "Events for " + day + ":" + vbCrLf
+        End If
+        If Not String.IsNullOrEmpty(CustomMessage) Then
+            events = CustomMessage + vbCrLf
+        End If
+        If reader.HasRows Then
+            While reader.Read
+                Dim dateConverted As String = TimeFromMySQLFormat(reader.GetTimeSpan("time").ToString)
+                events += dateConverted + " - " + reader("activityname") + vbCrLf
+            End While
+        Else
+            If Language = "es" Then
+                events = "No hay eventos para este día"
+            Else
+                events = "There's no events for this day"
+            End If
+        End If
+        Connection.Close()
+        Return events
+    End Function
+    Private Function GetAllAcivities(ServerName As String) As String
+        ServerName = ServerName.Replace(" ", "").ToLower
+        Dim eventsHeader As String = String.Empty
+        If Language = "es" Then
+            eventsHeader = "Lista de eventos:" + vbCrLf
+        Else
+            eventsHeader = "Events List" + vbCrLf
+        End If
+        Dim events As String = String.Empty
+        For day As Integer = 1 To 7
+            Dim SQLQuery As String = "SELECT time, activityname FROM activities WHERE servername='" + ServerName + "' AND day = " + day.ToString + " ORDER BY day, time;"
+            Dim hasRows As Boolean = False
+            Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+            Dim Command As New MySqlCommand(SQLQuery, Connection)
+            Connection.Open()
+            Dim reader As MySqlDataReader = Command.ExecuteReader
+            If reader.HasRows Then
+                events += ReturnStringFromDayInt(day) + ":" + vbCrLf
+                While reader.Read
+                    Dim dateConverted As String = TimeFromMySQLFormat(reader.GetTimeSpan("time").ToString)
+                    events += dateConverted + " - " + reader("activityname") + vbCrLf
+                End While
+                events += vbCrLf
+            End If
+            Connection.Close()
+        Next
+        If Not String.IsNullOrEmpty(events) Then
+            events = eventsHeader + events
+        Else
+            If Language = "es" Then
+                events = "No hay eventos actualmente en la semana"
+            Else
+                events = "There's no events in the week"
+            End If
+        End If
+        Return events
+    End Function
+    Private Function GetSpecificActivity(ServerName As String, day As String, time As String) As String
+        ServerName = ServerName.Replace(" ", "").ToLower
+        Dim SQLQuery As String = "SELECT activityname FROM activities WHERE servername='" + ServerName + "' AND day=" + day + " AND time='" + time & "' ORDER BY day, time;"
+        Dim hasRows As Boolean = False
+        Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+        Dim Command As New MySqlCommand(SQLQuery, Connection)
+        Connection.Open()
+        Dim reader As MySqlDataReader = Command.ExecuteReader
+        Dim events As String = String.Empty
+        If reader.HasRows Then
+            While reader.Read
+                events = +reader("activityname") + vbCrLf
+            End While
+        Else
+            If Language = "es" Then
+                events = "No hay eventos para este día"
+            Else
+                events = "There's no events for this day"
+            End If
+        End If
+        Connection.Close()
+        Return events
+    End Function
+    Private Sub AddEvent(ServerName As String, day As String, time As String, message As String)
+        ServerName = ServerName.Replace(" ", "").ToLower
+        day = ReturnIntFromDayString(day)
+        time = TimeToMySQLFormat(time)
+        Dim SQLQuery As String = "INSERT INTO activities (servername, day, time, activityname) VALUES ('" + ServerName + "', '" + day + "', '" + time + "', '" + message + "')"
+        Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+        Dim Command As New MySqlCommand(SQLQuery, Connection)
+        Connection.Open()
+        Command.ExecuteNonQuery()
+        Connection.Close()
+    End Sub
+    Private Sub UpdateEvent(ServerName As String, day As String, time As String, message As String)
+        ServerName = ServerName.Replace(" ", "").ToLower
+        day = ReturnIntFromDayString(day)
+        time = TimeToMySQLFormat(time)
+        Dim SQLQuery As String = "UPDATE activities SET activityname = '" + message + "' WHERE servername='" + ServerName + "' AND day='" + day + "' AND time='" + time + "'"
+        Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+        Dim Command As New MySqlCommand(SQLQuery, Connection)
+        Connection.Open()
+        Command.ExecuteNonQuery()
+        Connection.Close()
+    End Sub
+    Private Sub DeleteEvent(ServerName As String, day As String, time As String)
+        ServerName = ServerName.Replace(" ", "").ToLower
+        day = ReturnIntFromDayString(day)
+        time = TimeToMySQLFormat(time)
+        Dim SQLQuery As String = "DELETE FROM activities WHERE servername='" + ServerName + "' AND day='" + day + "' AND time='" + time + "'"
+        Dim Connection As MySqlConnection = New MySqlConnection(MySQLString)
+        Dim Command As New MySqlCommand(SQLQuery, Connection)
+        Connection.Open()
+        Command.ExecuteNonQuery()
+        Connection.Close()
+    End Sub
+    Private Function TimeToMySQLFormat(time As String) As String
+        If Not TwentyFourHour Then
+            Dim timeSplit As String() = time.Split(":")
+            Dim hour As Integer = Convert.ToInt16(timeSplit(0))
+            If timeSplit(1).ToLower.Contains("pm") And hour <= 12 Then
+                timeSplit(0) = (hour + 12).ToString
+            End If
+            time = timeSplit(0) + ":" + timeSplit(1)
+            timeSplit = time.Split(" ")
+            Return timeSplit(0)
+        Else
+            Return time
+        End If
+    End Function
+    Private Function TimeFromMySQLFormat(time As String) As String
+        Dim timeSplit As String() = time.Split(":")
+        If Not TwentyFourHour Then
+            Dim checkHour As Integer = Convert.ToInt16(timeSplit(0))
+            If checkHour > 12 Then
+                checkHour -= 12
+                time = checkHour.ToString + ":" + timeSplit(1) + " PM"
+            Else
+                time = checkHour.ToString + ":" + timeSplit(1) + " AM"
+            End If
+        Else
+            time = timeSplit(0) + ":" + timeSplit(1)
+        End If
+        Return time
+    End Function
+    Private Function ReturnIntFromDayString(day As String) As String
+        day = day.ToLower()
+        Dim dayInt As Integer = 0
+        If day = "domingo" Or day = "sunday" Then
+            dayInt = 1
+        ElseIf day = "lunes" Or day = "monday" Then
+            dayInt = 2
+        ElseIf day = "martes" Or day.ToLower() = "tuesday" Then
+            dayInt = 3
+        ElseIf day = "miercoles" Or day = "miércoles" Or day = "wednesday" Then
+            dayInt = 4
+        ElseIf day = "jueves" Or day = "thursday" Then
+            dayInt = 5
+        ElseIf day = "viernes" Or day = "friday" Then
+            dayInt = 6
+        ElseIf day = "sabado" Or day = "sábado" Or day = "saturday" Then
+            dayInt = 7
+        End If
+        Return dayInt.ToString
+    End Function
+
+    Private Function ReturnStringFromDayInt(day As Integer) As String
+        Dim dayString As String = String.Empty
+        If day = 1 Then
+            If Language = "es" Then dayString = "Domingo" Else dayString = "Sunday"
+        ElseIf day = 2 Then
+            If Language = "es" Then dayString = "Lunes" Else dayString = "Monday"
+        ElseIf day = 3 Then
+            If Language = "es" Then dayString = "Martes" Else dayString = "Tuesday"
+        ElseIf day = 4 Then
+            If Language = "es" Then dayString = "Miércoles" Else dayString = "Wednesday"
+        ElseIf day = 5 Then
+            If Language = "es" Then dayString = "Jueves" Else dayString = "Thursday"
+        ElseIf day = 6 Then
+            If Language = "es" Then dayString = "Viernes" Else dayString = "Friday"
+        ElseIf day = 7 Then
+            If Language = "es" Then dayString = "Sábado" Else dayString = "Saturday"
+        End If
+        Return dayString
+    End Function
+    Private Function GetDayName(Optional Day As String = "") As String
+        If String.IsNullOrEmpty(Day) Then
+            Day = Date.Today.ToString("dddd")
+        End If
+        Dim DayName As String = ""
+        If Language = "es" Then
+            If Day.ToLower = "monday" Then
+                DayName = "lunes"
+            ElseIf Day.ToLower = "tuesday" Then
+                DayName = "martes"
+            ElseIf Day.ToLower = "wednesday" Then
+                DayName = "miércoles"
+            ElseIf Day.ToLower = "thursday" Then
+                DayName = "jueves"
+            ElseIf Day.ToLower = "friday" Then
+                DayName = "viernes"
+            ElseIf Day.ToLower = "saturday" Then
+                DayName = "sábado"
+            ElseIf Day.ToLower = "sunday" Then
+                DayName = "domingo"
+            End If
+        Else
+            DayName = Day
+        End If
+        Return DayName
     End Function
     Private Async Function OnMessage(ByVal e As MessageCreateEventArgs) As Task Handles DiscordClient.MessageCreated
         Dim User As String = FindUserInFile(e.Message.Author.Username)
         User = User.ToLower
         Dim IsUserInDiscord As Boolean = False
         Dim UserInDiscord As DiscordUser = e.Message.Author
-        If e.Message.Author.Username = "RutaBlockchainBot" = False Then
-            If e.Channel.Id = 402823764586397706 Then 'ProVenezuela
+        If e.Message.Author.Id = BotId = False Then
+            If e.Channel.Id = MainChannel Then
                 If e.Message.Content.ToLower.Contains("@") And e.Message.Content.ToLower.Contains("http") = False Then
                     Dim SplitWords As String() = e.Message.Content.Split(" ")
                     If SplitWords.Count >= 2 Then
                         Try
-                            UserInDiscord = Await GetDiscordUser(FindUser(SplitWords))
+                            UserInDiscord = Await GetDiscordUser(e.MentionedUsers(0))
                             User = FindUserInFile(UserInDiscord.Username.ToLower)
                             IsUserInDiscord = True
                         Catch
@@ -151,17 +410,11 @@ Public Class Form1
                                        "!google (terminos) - Busqueda en Google" & vbCrLf &
                                        "!wikipedia (artículo) - Busca en Wikipedia" & vbCrLf &
                                        "!perfil (usuario) - Dice el perfil tuyo o de un usuario." & vbCrLf &
-                                       "!clases - muestra las clases que se realizan en el grupo" & vbCrLf &
                                        vbCrLf & "También, puedes escribir algunas cosas naturalmente, como qué hora es y qué día es hoy." & vbCrLf & vbCrLf &
-                                       MentionMoises.Mention & " es un Witness. Si te gusta este bot y sus proyectos, considera votándolo como Witness :smiley:")
+                                       MentionMoises.Mention & " es un Witness. Si te gusta este bot y sus proyectos, considera votarlo como Witness " + Smiley + vbCrLf +
+                                       "Vótalo usando el siguiente enlace: https://v2.steemconnect.com/sign/account-witness-vote?witness=moisesmcardona&approve=1")
                     Threading.Thread.Sleep(500)
                     Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", los comandos se han enviado por mensaje privado")
-                ElseIf e.Message.Content.ToLower().Contains("!clase") Then
-                    Await e.Channel.SendMessageAsync("Tenemos las siguientes clases en la semana: " & vbCrLf & vbCrLf &
-                                                     "Martes: Noche de poesía con @danvel" & vbCrLf &
-                                                     "Miércoles: Clase de ortografía y redacción con @marynessc" & vbCrLf &
-                                                     "Viernes: Tutoría de blog con @ivymalifred" &vbCrLf & vbCrLf & 
-                                                     "Todas las clases son a las 7 PM hora de Venezuela")
                 ElseIf e.Message.Content.ToLower().Contains("!adn") Then
                     Await e.Channel.SendMessageAsync("Mi ADN es 100% tipo Visual Basic .NET")
                 ElseIf e.Message.Content.ToLower().Contains("!beso") Then
@@ -172,49 +425,64 @@ Public Class Form1
                     Await e.Channel.SendMessageAsync(":kissing_heart: :kissing_heart: :kissing_heart: :kissing_heart: :kissing_heart: :kissing_heart: :kissing_heart:")
                 ElseIf e.Message.Content.ToLower().Contains("hola") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Hola, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Hola, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy, " + GetDayName() + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
+                ElseIf e.Message.Content.ToLower().Contains("!ban") Then
+                    Await e.Channel.SendMessageAsync(UserInDiscord.Mention & " ha sido baneado " + Smiley)
+                    LastUserGreeted = e.Message.Author.Username
                 ElseIf e.Message.Content.ToLower().Contains("saludos") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Saludos, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Saludos, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy, " + GetDayName() + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("buenos dias") Or e.Message.Content.ToLower().Contains("buenos días") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Buenos Días, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Buenos Días, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy,  " + GetDayName() + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("buen dia") Or e.Message.Content.ToLower().Contains("buen día") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Buen Día, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Buen Día, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy, " + GetDayName() + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("buenas tardes") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Buenas Tardes, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Buenas Tardes, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy, " + GetDayName() + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("buenas noches") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Buenas Noches, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Buenas Noches, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy, " + GetDayName() + ":"))
+                        LastUserGreeted = e.Message.Author.Username
+                        SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
+                    End If
+                ElseIf e.Message.Content.ToLower().Contains("feliz dia") Or e.Message.Content.ToLower().Contains("felíz día") And e.Message.Content.Contains("@") = False Then
+                    If LastUserGreeted <> e.Message.Author.Username Then
+                        Await e.Channel.SendMessageAsync("Felíz Día, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy, " + GetDayName() + ":"))
+                        LastUserGreeted = e.Message.Author.Username
+                        SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
+                    End If
+                ElseIf e.Message.Content.ToLower().Contains("feliz tarde") Or e.Message.Content.ToLower().Contains("felíz tarde") And e.Message.Content.Contains("@") = False Then
+                    If LastUserGreeted <> e.Message.Author.Username Then
+                        Await e.Channel.SendMessageAsync("Felíz Tarde, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy, " + GetDayName() + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf (e.Message.Content.ToLower().Contains("feliz noche") Or e.Message.Content.ToLower().Contains("felíz noche")) And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Felíz Noche, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Felíz Noche, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy, " + GetDayName() + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("buenas") And e.Message.Content.Contains("@") = False Then
                     If LastUserGreeted <> e.Message.Author.Username Then
-                        Await e.Channel.SendMessageAsync("Buenas, " & UserInDiscord.Mention)
+                        Await e.Channel.SendMessageAsync("Buenas, " & UserInDiscord.Mention & vbCrLf & GetSingleDayActivity(ServerName, GetDayName(), "Estos son los eventos que tenemos en el día de hoy, " + GetDayName() + ":"))
                         LastUserGreeted = e.Message.Author.Username
                         SaveGreetedUser(LastUserGreeted, LastUserGoodbye)
                     End If
@@ -235,33 +503,53 @@ Public Class Form1
                     Await e.Channel.SendMessageAsync("pong")
                 ElseIf e.Message.Content.ToLower().Contains("buena noticia") Or e.Message.Content.ToLower().Contains("buenas noticias") Then
                     Await e.Channel.SendMessageAsync("¡Enhorabuena!")
+                ElseIf e.Message.Content.ToLower().Contains("!actividad") Then
+                    If e.Message.Content.ToLower.Contains("hoy") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, GetDayName()))
+                    ElseIf e.Message.Content.ToLower.Contains("lunes") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "lunes"))
+                    ElseIf e.Message.Content.ToLower.Contains("martes") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "martes"))
+                    ElseIf e.Message.Content.ToLower.Contains("miercoles") Or e.Message.Content.ToLower.Contains("miércoles") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "miercoles"))
+                    ElseIf e.Message.Content.ToLower.Contains("jueves") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "jueves"))
+                    ElseIf e.Message.Content.ToLower.Contains("viernes") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "viernes"))
+                    ElseIf e.Message.Content.ToLower.Contains("sabado") Or e.Message.Content.ToLower.Contains("sábado") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "sabado"))
+                    ElseIf e.Message.Content.ToLower.Contains("domingo") Then
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName, "domingo"))
+                    Else
+                        Await e.Channel.SendMessageAsync(GetActivity(ServerName))
+                    End If
                 ElseIf e.Message.Content.ToLower().Contains("!seguidores") Then
                     Dim FollowerNumber As Integer = GetResultFromSteemPlaceAPI(User, "followers")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & FollowerNumber & " seguidores :smiley:")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & FollowerNumber & " seguidores " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & FollowerNumber & " seguidores :smiley:")
+                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & FollowerNumber & " seguidores " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!siguiendo") Then
                     Dim FollowingNumber As Integer = GetResultFromSteemPlaceAPI(User, "following")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", sigues a " & FollowingNumber & " perfiles :smiley:")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", sigues a " & FollowingNumber & " perfiles " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & " sigue a " & FollowingNumber & " perfiles :smiley:  ")
+                        Await e.Channel.SendMessageAsync("@" & User & " sigue a " & FollowingNumber & " perfiles " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!ubicación") Or e.Message.Content.ToLower.Contains("!ubicacion") Then
                     Dim location As String = GetResultFromSteemPlaceAPI(User, "location")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & " es de " & location & " :smiley:")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & " es de " & location & " " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & " es de " & location & " :smiley:")
+                        Await e.Channel.SendMessageAsync("@" & User & " es de " & location & " " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!posts") Then
                     Dim postNumber As Integer = GetResultFromSteemPlaceAPI(User, "posts")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & postNumber & " posts y comentarios combinados :smiley:")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & postNumber & " posts y comentarios combinados " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & postNumber & " posts y comentarios combinados :smiley:")
+                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & postNumber & " posts y comentarios combinados " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!creacion") Or e.Message.Content.ToLower().Contains("!creación") Or e.Message.Content.ToLower().Contains("!registro") Then
                     Dim DateAndTime As Date = GetResultFromSteemPlaceAPI(User, "creation")
@@ -294,30 +582,30 @@ Public Class Form1
                     End If
                     Dim FullDate As String = Convert.ToInt32(DateAndTime.ToString("dd")).ToString + " de " + MonthName + " de " + DateAndTime.ToString("yyyy")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tu cuenta fue creada el " & FullDate & " a las " & DateAndTime.ToString("hh:mm:ss tt") & " :smiley: ")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tu cuenta fue creada el " & FullDate & " a las " & DateAndTime.ToString("hh:mm:ss tt") & " " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("La cuenta de @" & User & " fue creada el " & FullDate & " a las " & DateAndTime.ToString("hh:mm:ss tt") & " :smiley: ")
+                        Await e.Channel.SendMessageAsync("La cuenta de @" & User & " fue creada el " & FullDate & " a las " & DateAndTime.ToString("hh:mm:ss tt") & " " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!sbd") Then
                     Dim Balance As String = GetResultFromSteemPlaceAPI(User, "sbd")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & Balance & " :smiley: ")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & Balance & " " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & Balance & " :smiley: ")
+                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & Balance & " " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!steem") Then
                     Dim Balance As String = GetResultFromSteemPlaceAPI(User, "steem")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & Balance & " :smiley: ")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tienes " & Balance & " " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & Balance & " :smiley: ")
+                        Await e.Channel.SendMessageAsync("@" & User & " tiene " & Balance & " " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!vp") Then
                     Dim VP As Double = GetResultFromSteemPlaceAPI(User, "vp")
                     If IsUserInDiscord Then
-                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tu poder de voto es " & VP & "% :slight_smile: ")
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", tu poder de voto es " & VP & "% " + Smiley)
                     Else
-                        Await e.Channel.SendMessageAsync("@" & User & ", tu poder de voto es " & VP & "% :slight_smile: ")
+                        Await e.Channel.SendMessageAsync("@" & User & ", tu poder de voto es " & VP & "% " + Smiley)
                     End If
                 ElseIf e.Message.Content.ToLower().Contains("!witness") Then
                     Dim WitnessVotes As String = GetResultFromSteemPlaceAPI(User, "witness")
@@ -325,9 +613,9 @@ Public Class Form1
                     If String.IsNullOrEmpty(WitnessVotes) = False Then
                         If WitnessVotes.Contains("moisesmcardona") Then
                             If IsUserInDiscord = True Then
-                                Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", has votado a " & MentionMoises.Mention & " como Witness :smiley: ")
+                                Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", has votado a " & MentionMoises.Mention & " como Witness " + Smiley)
                             Else
-                                Await e.Channel.SendMessageAsync(User & " ha votado a " & MentionMoises.Mention & " como Witness :smiley: ")
+                                Await e.Channel.SendMessageAsync(User & " ha votado a " & MentionMoises.Mention & " como Witness " + Smiley)
                             End If
                         Else
                             If IsUserInDiscord = True Then
@@ -336,6 +624,8 @@ Public Class Form1
                                 Await e.Channel.SendMessageAsync(User & " no ha votado a " & MentionMoises.Mention & " como Witness :cry:")
                             End If
                         End If
+                    Else
+                        Await e.Channel.SendMessageAsync(UserInDiscord.Mention & ", parece que no has votado a nadie como Witness  :cry:" + vbCrLf + "Considera votar a " & MentionMoises.Mention & " como Witness usando el siguiente enlace: https://v2.steemconnect.com/sign/account-witness-vote?witness=moisesmcardona&approve=1")
                     End If
                 ElseIf e.Message.Content.ToLower.Contains("!fc") Then
                     Dim SplitWords As String() = e.Message.Content.Split(" ")
@@ -391,23 +681,7 @@ Public Class Form1
                     ElseIf Month = "12" Then
                         MonthName = "diciembre"
                     End If
-                    Dim Day As String = Date.Today.ToString("dddd")
-                    Dim DayName As String = ""
-                    If Day.ToLower = "monday" Then
-                        DayName = "lunes"
-                    ElseIf Day.ToLower = "tuesday" Then
-                        DayName = "martes"
-                    ElseIf Day.ToLower = "wednesday" Then
-                        DayName = "miércoles"
-                    ElseIf Day.ToLower = "thursday" Then
-                        DayName = "jueves"
-                    ElseIf Day.ToLower = "friday" Then
-                        DayName = "viernes"
-                    ElseIf Day.ToLower = "saturday" Then
-                        DayName = "sábado"
-                    ElseIf Day.ToLower = "sunday" Then
-                        DayName = "domingo"
-                    End If
+                    Dim DayName As String = GetDayName()
                     Await e.Channel.SendMessageAsync("Hoy es " & DayName & ", " & Date.Today.ToString("dd") & " de " & MonthName & " de " & Date.Today.ToString("yyyy"))
                 ElseIf e.Message.Content.ToLower.Contains("!hora") Or e.Message.Content.ToLower.Contains("que hora es?") Or e.Message.Content.ToLower.Contains("qué hora es?") Or e.Message.Content.ToLower.Contains("qué hora es en") Or e.Message.Content.ToLower.Contains("que hora es en") Then
                     If e.Message.Content.ToLower.Contains("españa") Or e.Message.Content.ToLower.Contains("madrid") Or e.Message.Content.ToLower.Contains("brussels") Or e.Message.Content.ToLower.Contains("Copenhagen") Then
@@ -454,6 +728,9 @@ Public Class Form1
                         Next
                         Dim ArticleResult As String = GetWikipediaArticle(WikiArticle)
                         If String.IsNullOrEmpty(ArticleResult) = False Then
+                            If ArticleResult.Length > 1500 Then
+                                ArticleResult = ArticleResult.Substring(0, ArticleResult.Length - 500) + "..."
+                            End If
                             Await e.Channel.SendMessageAsync(ArticleResult & vbNewLine & vbNewLine & "Más del articulo en: " & "https://es.wikipedia.org/wiki/" & WikiArticle.Replace(" ", "_").Remove(WikiArticle.Count - 1, 1))
                         Else
                             Await e.Channel.SendMessageAsync("No se ha encontrado un artículo con esos términos. Verifica que los términos estén bien escritos (Mayúsculas, acentos...) ")
@@ -470,64 +747,105 @@ Public Class Form1
                     End If
                 End If
             End If
-            If e.Channel.Id = "402823764586397706" Then
-                If e.Message.Content.ToLower().Contains("!valor") Then
-                    Dim Reply As String = String.Empty
-                    Dim SplitWords As String() = e.Message.Content.Split(" ")
-                    If SplitWords.Count >= 2 Then
-                        Dim i = 0
-                        For Each word In SplitWords
-                            If word = "!valor" Then
-                                Reply = GetOrCalculatePrice(SplitWords(i + 1))
-                            End If
-                            i = i + 1
-                        Next
-                        Await e.Channel.SendMessageAsync(Reply)
-                    Else
-                        Reply = GetOrCalculatePrice("steem", "USD")
-                        Await e.Channel.SendMessageAsync(Reply)
-                    End If
-                ElseIf e.Message.Content.ToLower().Contains("!calcular") Then
-                    Dim Reply As String = String.Empty
-                    Dim SplitWords As String() = e.Message.Content.Split(" ")
-                    If SplitWords.Count >= 2 Then
-                        Dim i = 0
-                        For Each word In SplitWords
-                            If word = "!calcular" Then
-                                Reply = GetOrCalculatePrice(SplitWords(i + 2), SplitWords(i + 1))
-                            End If
-                            i = i + 1
-                        Next
-                        Await e.Channel.SendMessageAsync(Reply)
-                    Else
-                        Reply = GetOrCalculatePrice("steem", "USD")
-                        Await e.Channel.SendMessageAsync(Reply)
+            If Not String.IsNullOrEmpty(CoinValueChannel) Then
+                If e.Channel.Id = CoinValueChannel Then
+                    If e.Message.Content.ToLower().Contains("!valor") Then
+                        Dim Reply As String = String.Empty
+                        Dim SplitWords As String() = e.Message.Content.Split(" ")
+                        If SplitWords.Count >= 2 Then
+                            Dim i = 0
+                            For Each word In SplitWords
+                                If word = "!valor" Then
+                                    Reply = GetOrCalculatePrice(SplitWords(i + 1))
+                                End If
+                                i = i + 1
+                            Next
+                            Await e.Channel.SendMessageAsync(Reply)
+                        Else
+                            Reply = GetOrCalculatePrice("steem")
+                            Await e.Channel.SendMessageAsync(Reply)
+                        End If
+                    ElseIf e.Message.Content.ToLower().Contains("!calcular") Then
+                        Dim Reply As String = String.Empty
+                        Dim SplitWords As String() = e.Message.Content.Split(" ")
+                        If SplitWords.Count >= 2 Then
+                            Dim i = 0
+                            For Each word In SplitWords
+                                If word = "!calcular" Then
+                                    Reply = GetOrCalculatePrice(SplitWords(i + 2), SplitWords(i + 1))
+                                End If
+                                i = i + 1
+                            Next
+                            Await e.Channel.SendMessageAsync(Reply)
+                        Else
+                            Reply = GetOrCalculatePrice("steem")
+                            Await e.Channel.SendMessageAsync(Reply)
+                        End If
                     End If
                 End If
             End If
-            '403626371659726879 = #post-utiles-de-steemit
-            '403636422612877312 = #anuncios
-            '404108969905356801 = #steem-walking
-            '404781212536799233 = #meetup
-            '413455484213919744 = #tutorias
-            '412055031370612736 = #debates-domingueros
-            '408693599077924864 = #evangecriptos
-            '402820779164696577 = #publica tu post
-            'If e.Channel.Id = 403626371659726879 = False And e.Channel.Id = 403636422612877312 = False And e.Channel.Id = 404108969905356801 = False And e.Channel.Id = 404781212536799233 = False And e.Channel.Id = 413455484213919744 = False And e.Channel.Id = 412055031370612736 = False And e.Channel.Id = 408693599077924864 = False and e.Channel.Id = 402820779164696577 = False Then
-            '    If e.Message.Content.Contains("steemit.com/") Or e.Message.Content.Contains("busy.org/") Or e.Message.Content.Contains("utopian.io/") Then
-            '        Dim SplitWords As String() = e.Message.Content.Split("/")
-            '        If SplitWords.Count > 4 Then
-            '            Dim Channel As DiscordChannel = Await DiscordClient.GetChannelAsync(402820779164696577)
-            '            Dim Message As String = ":police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: " & vbCrLf &
-            '                                    ":warning: " & UserInDiscord.Mention & " ADVERTENCIA " & UserInDiscord.Mention & " :warning:" & vbCrLf &
-            '                                    ":rotating_light: Mensaje con post detectado :rotating_light:" & vbCrLf &
-            '                                    ":rotating_light: En este canal, no se permiten posts. Los posts deben ir en el canal " & Channel.Mention & " :rotating_light:" & vbCrLf &
-            '                                    ":police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: " & vbCrLf &
-            '                                    ":warning: Por favor, escribe para confirmar que viste la advertencia :warning: Infracciones múltiples resultarán en tu expulsión de este servidor."
-            '            Await e.Channel.SendMessageAsync(Message)
-            '        End If
-            '    End If
-            'End If
+            If Not String.IsNullOrEmpty(BotControlChannel) Then
+                If e.Channel.Id = BotControlChannel Then
+                    If e.Message.Content.ToLower().Contains("!actividad") Then
+                        Dim SplitWords As String() = e.Message.Content.Split(" ")
+                        Dim ErrorOccurred As Boolean = False
+                        Try
+                            If SplitWords.Count > 1 Then
+                                Dim TimeStringsToUse As String = SplitWords(3)
+                                Dim StartWord As Integer = 4
+                                If Not TwentyFourHour Then
+                                    StartWord = 5
+                                    TimeStringsToUse = SplitWords(3) + " " + SplitWords(4)
+                                End If
+                                If SplitWords(1) = "añadir" Then
+                                    Dim ActivityName As String = String.Empty
+                                    For currentword = StartWord To SplitWords.Count - 1
+                                        ActivityName += SplitWords(currentword) + " "
+                                    Next
+                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), TimeStringsToUse)
+                                    If Not TimeslotInUse Then
+                                        AddEvent(ServerName, SplitWords(2), TimeStringsToUse, ActivityName)
+                                        Await e.Channel.SendMessageAsync("El evento ha sido añadido " + Smiley)
+                                    Else
+                                        Await e.Channel.SendMessageAsync("Este evento existe a esta hora: " + GetActivity(SplitWords(2), TimeStringsToUse) + Environment.NewLine +
+                                                                         "Para cambiar o actualizar este evento, utilice el comando !actividad actualizar (día) (hora) (mensaje)" + Environment.NewLine +
+                                                                         "Para borrar este evento, utilice el comando !actividad borrar (día) (hora)")
+                                    End If
+                                ElseIf SplitWords(1) = "actualizar" Then
+                                    Dim ActivityName As String = String.Empty
+                                    For currentword = StartWord To SplitWords.Count - 1
+                                        ActivityName += SplitWords(currentword) + " "
+                                    Next
+                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), TimeStringsToUse)
+                                    If TimeslotInUse Then
+                                        UpdateEvent(ServerName, SplitWords(2), TimeStringsToUse, ActivityName)
+                                        Await e.Channel.SendMessageAsync("El evento ha sido actualizado " + Smiley)
+                                    Else
+                                        Await e.Channel.SendMessageAsync("No existe evento para actualizar en ese día a esta hora." + Environment.NewLine +
+                                                                         "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
+                                    End If
+                                ElseIf SplitWords(1) = "borrar" Or SplitWords(1) = "remover" Or SplitWords(1) = "eliminar" Then
+                                    Dim TimeslotInUse As Boolean = CheckIfActivityExists(ServerName, SplitWords(2), TimeStringsToUse)
+                                    If TimeslotInUse Then
+                                        DeleteEvent(ServerName, SplitWords(2), TimeStringsToUse)
+                                        Await e.Channel.SendMessageAsync("El evento ha sido sido borrado " + Smiley)
+                                    Else
+                                        Await e.Channel.SendMessageAsync("No existe evento para borrar en ese día a esta hora." + Environment.NewLine +
+                                                                         "Para añadir un evento, utilice el comando !actividad añadir (día) (hora) (mensaje)")
+                                    End If
+                                End If
+                            Else
+                                Await e.Channel.SendMessageAsync(GetActivity(ServerName))
+                            End If
+                        Catch
+                            ErrorOccurred = True
+                        End Try
+                        If ErrorOccurred Then Await e.Channel.SendMessageAsync("Ha ocurrido un error. Asegúrese que el formato del mensaje es por ejemplo:" & vbCrLf & "!actividad añadir lunes 9:00 PM una actividad")
+                    Else
+                        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(MainChannel), e.Message.Content)
+                    End If
+                End If
+            End If
         End If
     End Function
     Private Sub SaveGreetedUser(LastUserGreeted As String, LastUserGoodbye As String)
@@ -600,8 +918,8 @@ Public Class Form1
         Dim WikipediaText As String = ""
         Try
             Dim ResponseFromServer As String = String.Empty
-            Dim request As System.Net.WebRequest = System.Net.WebRequest.Create("https://es.wikipedia.org/wiki/" & article)
-            Dim response As System.Net.WebResponse = request.GetResponse()
+            Dim request As WebRequest = WebRequest.Create("https://es.wikipedia.org/wiki/" & article)
+            Dim response As WebResponse = request.GetResponse()
             request.Timeout = 10 * 1000
             Dim dataStream As Stream = response.GetResponseStream()
             Dim reader As New StreamReader(dataStream)
@@ -624,10 +942,71 @@ Public Class Form1
 ":rotating_light: En este canal, no se permiten posts. Por favor, utiliza el canal de promoción para promocionar tu post :rotating_light:" & vbCrLf &
 ":police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: :police_car: :rotating_light: " & vbCrLf &
 ":warning: Por favor, escribe para confirmar que viste la advertencia :warning: Infracciones múltiples resultarán en tu expulsión de este servidor."
-        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(402823764586397706), Message)
+        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(MainChannel), Message)
     End Sub
 
     Private Async Sub Button3_Click(sender As Object, e As System.EventArgs) Handles Button3.Click
-        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(402823764586397706), TextBox1.Text)
+        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(MainChannel), TextBox1.Text)
+    End Sub
+
+    Private Sub Form1_Load(sender As Object, e As System.EventArgs) Handles MyBase.Load
+        Dim ConfigFile As StreamReader = New StreamReader("Config.txt")
+        Dim currentline As String = String.Empty
+        Dim MySQLServer As String = String.Empty
+        Dim MySQLUser As String = String.Empty
+        Dim MySQLPassword As String = String.Empty
+        Dim MySQLDatabase As String = String.Empty
+        Dim Ssl As String = String.Empty
+        While ConfigFile.EndOfStream = False
+            currentline = ConfigFile.ReadLine
+            If currentline.Contains("token") Then
+                Dim GetToken As String() = currentline.Split("=")
+                Token = GetToken(1)
+            ElseIf currentline.Contains("discord-name") Then
+                Dim GetDiscordName As String() = currentline.Split("=")
+                ServerName = GetDiscordName(1)
+            ElseIf currentline.Contains("bot-id") Then
+                Dim GetBotId As String() = currentline.Split("=")
+                BotId = GetBotId(1)
+            ElseIf currentline.Contains("main-channel") Then
+                Dim GetMainChannel As String() = currentline.Split("=")
+                MainChannel = GetMainChannel(1)
+            ElseIf currentline.Contains("botcontrol-channel") Then
+                Dim GetControlChannel As String() = currentline.Split("=")
+                BotControlChannel = GetControlChannel(1)
+            ElseIf currentline.Contains("welcome-channel") Then
+                Dim GetWelcomeChannel As String() = currentline.Split("=")
+                WelcomeChannel = GetWelcomeChannel(1)
+            ElseIf currentline.Contains("welcome-enabled") Then
+                Dim GetWelcomeEnabled As String() = currentline.Split("=")
+                If GetWelcomeEnabled(1) = "1" Or GetWelcomeEnabled(1).ToLower() = "true" Then WelcomeEnabled = True Else WelcomeEnabled = False
+            ElseIf currentline.Contains("value-channel") Then
+                Dim GetCoinValueChannel As String() = currentline.Split("=")
+                CoinValueChannel = GetCoinValueChannel(1)
+            ElseIf currentline.Contains("smiley") Then
+                Dim GetSmiley As String() = currentline.Split("=")
+                Smiley = GetSmiley(1)
+            ElseIf currentline.Contains("24hour") Then
+                Dim Get24Hour As String() = currentline.Split("=")
+                If Get24Hour(1) = "1" Or Get24Hour(1).ToLower() = "true" Then TwentyFourHour = True Else TwentyFourHour = False
+            ElseIf currentline.Contains("mysql-server") Then
+                Dim GetServer As String() = currentline.Split("=")
+                MySQLServer = GetServer(1)
+            ElseIf currentline.Contains("mysql-username") Then
+                Dim GetUsername As String() = currentline.Split("=")
+                MySQLUser = GetUsername(1)
+            ElseIf currentline.Contains("mysql-password") Then
+                Dim GetPassword As String() = currentline.Split("=")
+                MySQLPassword = GetPassword(1)
+            ElseIf currentline.Contains("mysql-database") Then
+                Dim GetDatabase As String() = currentline.Split("=")
+                MySQLDatabase = GetDatabase(1)
+            ElseIf currentline.Contains("mysql-sslmode") Then
+                Dim GetSSLMode As String() = currentline.Split("=")
+                Ssl = GetSSLMode(1)
+            End If
+        End While
+        Me.Text = ServerName + " Discord Bot"
+        MySQLString = "server=" + MySQLServer + ";user=" + MySQLUser + ";database=" + MySQLDatabase + ";port=3306;password=" + MySQLPassword + ";sslmode= " + Ssl
     End Sub
 End Class

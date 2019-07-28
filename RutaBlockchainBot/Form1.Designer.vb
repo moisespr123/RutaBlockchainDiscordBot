@@ -29,7 +29,7 @@ Partial Class Form1
         Me.Button3 = New System.Windows.Forms.Button()
         Me.Timer1 = New System.Windows.Forms.Timer(Me.components)
         Me.Button4 = New System.Windows.Forms.Button()
-        Me.SuspendLayout()
+        Me.SuspendLayout
         '
         'Button1
         '
@@ -38,7 +38,7 @@ Partial Class Form1
         Me.Button1.Size = New System.Drawing.Size(75, 23)
         Me.Button1.TabIndex = 0
         Me.Button1.Text = "Start Bot"
-        Me.Button1.UseVisualStyleBackColor = True
+        Me.Button1.UseVisualStyleBackColor = true
         '
         'TextBox1
         '
@@ -54,7 +54,7 @@ Partial Class Form1
         Me.Button3.Size = New System.Drawing.Size(75, 23)
         Me.Button3.TabIndex = 5
         Me.Button3.Text = "Send"
-        Me.Button3.UseVisualStyleBackColor = True
+        Me.Button3.UseVisualStyleBackColor = true
         '
         'Button4
         '
@@ -63,24 +63,24 @@ Partial Class Form1
         Me.Button4.Size = New System.Drawing.Size(344, 23)
         Me.Button4.TabIndex = 10
         Me.Button4.Text = "Enviar advertencia de Post"
-        Me.Button4.UseVisualStyleBackColor = True
+        Me.Button4.UseVisualStyleBackColor = true
         '
         'Form1
         '
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(6!, 13!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(371, 115)
         Me.Controls.Add(Me.Button4)
         Me.Controls.Add(Me.Button3)
         Me.Controls.Add(Me.TextBox1)
         Me.Controls.Add(Me.Button1)
-        Me.MaximizeBox = False
+        Me.MaximizeBox = false
         Me.Name = "Form1"
-        Me.Text = "Ruta Blockain Discord Bot"
-        Me.ResumeLayout(False)
-        Me.PerformLayout()
+        Me.Text = "Discord Bot"
+        Me.ResumeLayout(false)
+        Me.PerformLayout
 
-    End Sub
+End Sub
 
     Friend WithEvents Button1 As Button
     Friend WithEvents BackgroundWorker1 As System.ComponentModel.BackgroundWorker
