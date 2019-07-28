@@ -130,7 +130,7 @@ Public Class Form1
                 If e.Message.Content.ToLower().Contains("!bot") Or e.Message.Content.ToLower().Contains("!help") Or e.Message.Content.ToLower().Contains("!ayuda") Then
                     Dim MentionMoises As DiscordUser = Await DiscordClient.GetUserAsync("323205598311219211")
                     Threading.Thread.Sleep(500)
-                    Dim Message As DiscordDmChannel = Await DiscordClient.CreateDmAsync(UserInDiscord)
+                    Dim Message As DiscordMember = UserInDiscord
                     Threading.Thread.Sleep(500)
                     Await Message.SendMessageAsync("Hola, soy un bot creado por " & MentionMoises.Mention & vbCrLf & vbCrLf & "Mis comandos son los siguientes: " & vbCrLf &
                                        "!seguidores (Opcional, la persona que quieras saber sus seguidores) " & vbCrLf &
@@ -470,41 +470,41 @@ Public Class Form1
                     End If
                 End If
             End If
-            'If e.Channel.Id = "" Then
-            '    If e.Message.Content.ToLower().Contains("!valor") Then
-            '    Dim Reply As String = String.Empty
-            '    Dim SplitWords As String() = e.Message.Content.Split(" ")
-            '    If SplitWords.Count >= 2 Then
-            '        Dim i = 0
-            '        For Each word In SplitWords
-            '            If word = "!valor" Then
-            '                Reply = GetOrCalculatePrice(SplitWords(i + 1))
-            '            End If
-            '            i = i + 1
-            '        Next
-            '        Await e.Channel.SendMessageAsync(Reply)
-            '    Else
-            '        Reply = GetOrCalculatePrice("steem", "USD")
-            '        Await e.Channel.SendMessageAsync(Reply)
-            '    End If
-            'ElseIf e.Message.Content.ToLower().Contains("!calcular") Then
-            '    Dim Reply As String = String.Empty
-            '        Dim SplitWords As String() = e.Message.Content.Split(" ")
-            '        If SplitWords.Count >= 2 Then
-            '            Dim i = 0
-            '            For Each word In SplitWords
-            '                If word = "!calcular" Then
-            '                    Reply = GetOrCalculatePrice(SplitWords(i + 2), SplitWords(i + 1))
-            '                End If
-            '                i = i + 1
-            '            Next
-            '            Await e.Channel.SendMessageAsync(Reply)
-            '        Else
-            '            Reply = GetOrCalculatePrice("steem", "USD")
-            '            Await e.Channel.SendMessageAsync(Reply)
-            '        End If
-            '    End If
-            'End If
+            If e.Channel.Id = "402823764586397706" Then
+                If e.Message.Content.ToLower().Contains("!valor") Then
+                    Dim Reply As String = String.Empty
+                    Dim SplitWords As String() = e.Message.Content.Split(" ")
+                    If SplitWords.Count >= 2 Then
+                        Dim i = 0
+                        For Each word In SplitWords
+                            If word = "!valor" Then
+                                Reply = GetOrCalculatePrice(SplitWords(i + 1))
+                            End If
+                            i = i + 1
+                        Next
+                        Await e.Channel.SendMessageAsync(Reply)
+                    Else
+                        Reply = GetOrCalculatePrice("steem", "USD")
+                        Await e.Channel.SendMessageAsync(Reply)
+                    End If
+                ElseIf e.Message.Content.ToLower().Contains("!calcular") Then
+                    Dim Reply As String = String.Empty
+                    Dim SplitWords As String() = e.Message.Content.Split(" ")
+                    If SplitWords.Count >= 2 Then
+                        Dim i = 0
+                        For Each word In SplitWords
+                            If word = "!calcular" Then
+                                Reply = GetOrCalculatePrice(SplitWords(i + 2), SplitWords(i + 1))
+                            End If
+                            i = i + 1
+                        Next
+                        Await e.Channel.SendMessageAsync(Reply)
+                    Else
+                        Reply = GetOrCalculatePrice("steem", "USD")
+                        Await e.Channel.SendMessageAsync(Reply)
+                    End If
+                End If
+            End If
             '403626371659726879 = #post-utiles-de-steemit
             '403636422612877312 = #anuncios
             '404108969905356801 = #steem-walking
